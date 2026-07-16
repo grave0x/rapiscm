@@ -152,42 +152,10 @@ pub fn tag_response(result: &ResponseResult) -> Tags {
     tags
 }
 
-/// Filter endpoints by tag rules.
-pub fn filter_by_tags(items: &[Tags], include: &[String], exclude: &[String]) -> Vec<bool> {
-    items
-        .iter()
-        .map(|tags| {
-            // Include: all must match (AND)
-            if !include.is_empty() && !include.iter().all(|t| tags.iter().any(|tag| tag == t)) {
-                return false;
-            }
-            // Exclude: any match → reject
-            if !exclude.is_empty() && exclude.iter().any(|t| tags.iter().any(|tag| tag == t)) {
-                return false;
-            }
-            true
-        })
-        .collect()
-}
-
-/// Filter a slice of Endpoints in-place by tag rules.
-pub fn filter_endpoints(endpoints: &mut Vec<Endpoint>, include: &[String], exclude: &[String]) {
-    if include.is_empty() && exclude.is_empty() {
-        return;
-    }
-    let tags: Vec<Tags> = endpoints.iter().map(|ep| ep.tags.clone()).collect();
-    let mask = filter_by_tags(&tags, include, exclude);
-    let mut i = 0;
-    endpoints.retain(|_| {
-        let keep = mask[i];
-        i += 1;
-        keep
-    });
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::Endpoint;
     use reqwest::Url;
 
     fn endpoint(path: &str) -> Endpoint {
@@ -230,24 +198,5 @@ mod tests {
         ep.method = reqwest::Method::DELETE;
         let tags = tag_endpoint(&ep);
         assert!(tags.contains(&"delete".into()));
-    }
-
-    #[test]
-    fn test_filter_include() {
-        let items = vec![
-            vec!["rest".into(), "v2".into()],
-            vec!["rest".into(), "v1".into()],
-        ];
-        let mask = filter_by_tags(&items, &["rest".into(), "v2".into()], &[]);
-        assert!(mask[0]);
-        assert!(!mask[1]);
-    }
-
-    #[test]
-    fn test_filter_exclude() {
-        let items = vec![vec!["rest".into()], vec!["admin".into()]];
-        let mask = filter_by_tags(&items, &[], &["admin".into()]);
-        assert!(mask[0]);
-        assert!(!mask[1]);
     }
 }
