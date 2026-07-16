@@ -2,6 +2,7 @@
 //!
 //! Library interface for integration tests and programmatic use.
 
+pub mod analytics;
 pub mod check;
 pub mod cli;
 pub mod config;

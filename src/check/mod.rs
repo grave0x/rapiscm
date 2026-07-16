@@ -2,6 +2,7 @@ pub mod auth;
 pub mod cors;
 pub mod schema;
 pub mod security;
+pub mod trackers;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -20,6 +21,12 @@ pub fn run_checks(result: &mut ResponseResult) {
         result.expected_status,
     );
     result.checks.extend(schema_checks);
+
+    let tracker_checks = trackers::check_trackers(&result.response_body, &result.response_headers);
+    result.checks.extend(tracker_checks);
+
+    let cookie_checks = trackers::check_cookies(&result.response_headers);
+    result.checks.extend(cookie_checks);
 }
 
 /// Run asynchronous checks (CORS preflight, auth probe) on scan results.
