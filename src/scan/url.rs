@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use tracing::{info, warn};
 
 use crate::check;
@@ -8,6 +9,64 @@ use crate::parser;
 use crate::scan::runner::ScanRunner;
 use crate::types::{Endpoint, ResponseResult, Target};
 
+/// Build an HTTP client from config (proxy, timeout, TLS, redirects).
+fn build_client(config: &ScanConfig) -> Result<reqwest::Client> {
+    let mut builder = reqwest::Client::builder()
+        .timeout(config.timeout)
+        .danger_accept_invalid_certs(config.insecure)
+        .redirect(reqwest::redirect::Policy::limited(10));
+    if let Some(ref proxy_url) = config.proxy
+        && let Ok(proxy) = reqwest::Proxy::all(proxy_url)
+    {
+        builder = builder.proxy(proxy);
+    }
+    Ok(builder.build()?)
+}
+
+/// Crawl pages BFS-style up to `depth`, collecting same-origin API endpoints.
+async fn crawl(
+    client: &reqwest::Client,
+    start: &reqwest::Url,
+    base: &reqwest::Url,
+    max_depth: usize,
+    discovered: &mut Vec<reqwest::Url>,
+) {
+    let mut visited: HashSet<String> = HashSet::new();
+    // (depth, url) queue
+    let mut queue: Vec<(usize, reqwest::Url)> = vec![(0, start.clone())];
+    visited.insert(start.to_string());
+
+    while let Some((cur_depth, url)) = queue.pop() {
+        match client.get(url.as_str()).send().await {
+            Ok(resp) => {
+                let content_type = resp
+                    .headers()
+                    .get(reqwest::header::CONTENT_TYPE)
+                    .and_then(|v| v.to_str().ok())
+                    .unwrap_or("")
+                    .to_string();
+                let body = resp.bytes().await.unwrap_or_default();
+                let links = extract::extract_from_response(&body, &content_type, base);
+                for link in links {
+                    if !parser::url::same_origin(&link, base) {
+                        continue;
+                    }
+                    if !visited.insert(link.to_string()) {
+                        continue;
+                    }
+                    if parser::url::is_api_endpoint(&link) {
+                        discovered.push(link.clone());
+                    } else if cur_depth < max_depth {
+                        // Enqueue HTML pages for further discovery.
+                        queue.push((cur_depth + 1, link));
+                    }
+                }
+            }
+            Err(e) => warn!("crawl failed for {url}: {e}"),
+        }
+    }
+}
+
 /// Run a URL-mode scan: discover endpoints, then scan them.
 pub async fn run_url_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
     let base_url = match &config.target {
@@ -16,19 +75,9 @@ pub async fn run_url_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
     };
 
     let mut discovered: Vec<reqwest::Url> = Vec::new();
+    let client = build_client(config)?;
 
-    // Step 1: fetch base URL with proxy support.
-    let mut client_builder = reqwest::Client::builder()
-        .timeout(config.timeout)
-        .danger_accept_invalid_certs(config.insecure)
-        .redirect(reqwest::redirect::Policy::limited(10));
-    if let Some(ref proxy_url) = config.proxy
-        && let Ok(proxy) = reqwest::Proxy::all(proxy_url)
-    {
-        client_builder = client_builder.proxy(proxy);
-    }
-    let client = client_builder.build()?;
-
+    // Step 1: fetch base URL.
     match client.get(base_url.as_str()).send().await {
         Ok(resp) => {
             let content_type = resp
@@ -48,6 +97,15 @@ pub async fn run_url_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
             info!("discovered {} API links from HTTP fetch", discovered.len());
         }
         Err(e) => warn!("failed to fetch base URL: {e}"),
+    }
+
+    // Step 1b: optional recursive crawl.
+    if config.crawl {
+        crawl(&client, &base_url, &base_url, config.depth, &mut discovered).await;
+        info!(
+            "crawl complete: {} total API endpoints found",
+            discovered.len()
+        );
     }
 
     // Step 2: optional browser-based interactive discovery.

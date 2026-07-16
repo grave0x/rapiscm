@@ -167,4 +167,12 @@ pub struct GlobalArgs {
     #[cfg(feature = "browser")]
     #[arg(long)]
     pub headed: bool,
+
+    /// Enable recursive crawl for deeper endpoint discovery
+    #[arg(long)]
+    pub crawl: bool,
+
+    /// Maximum crawl depth (default: 2, only used with --crawl)
+    #[arg(long, default_value = "2")]
+    pub depth: usize,
 }

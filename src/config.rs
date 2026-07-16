@@ -31,6 +31,9 @@ pub struct ScanConfig {
     pub browser_kind: crate::scan::browser::BrowserKind,
     #[cfg(feature = "browser")]
     pub headed: bool,
+
+    pub crawl: bool,
+    pub depth: usize,
 }
 
 impl ScanConfig {
@@ -62,6 +65,8 @@ impl ScanConfig {
             browser_kind: crate::scan::browser::BrowserKind::Chrome,
             #[cfg(feature = "browser")]
             headed: global.headed,
+            crawl: global.crawl,
+            depth: global.depth,
         })
     }
 
@@ -130,6 +135,8 @@ impl ScanConfig {
             },
             #[cfg(feature = "browser")]
             headed: global.headed,
+            crawl: global.crawl,
+            depth: global.depth,
         })
     }
 }

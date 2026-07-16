@@ -190,6 +190,8 @@ mod tests {
             browser_kind: crate::scan::browser::BrowserKind::Chrome,
             #[cfg(feature = "browser")]
             headed: false,
+            crawl: false,
+            depth: 2,
         };
 
         let runner = ScanRunner::new(&config).unwrap();

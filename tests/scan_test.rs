@@ -30,6 +30,8 @@ fn base_config(port: u16) -> ScanConfig {
         browser_kind: rapiscm::scan::browser::BrowserKind::Chrome,
         #[cfg(feature = "browser")]
         headed: false,
+        crawl: false,
+        depth: 2,
     }
 }
 
