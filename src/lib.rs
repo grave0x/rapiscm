@@ -1,0 +1,15 @@
+//! rapiscm — Rust API scanner.
+//!
+//! Library interface for integration tests and programmatic use.
+
+pub mod check;
+pub mod cli;
+pub mod config;
+pub mod error;
+pub mod extract;
+pub mod fuzz;
+pub mod parser;
+pub mod report;
+pub mod scan;
+pub mod tag;
+pub mod types;
