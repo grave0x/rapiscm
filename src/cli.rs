@@ -42,6 +42,15 @@ pub enum Command {
         global: GlobalArgs,
     },
 
+    /// Discover domains for a company/organization
+    Corp {
+        /// Company or organization name to discover domains for
+        name: String,
+
+        #[command(flatten)]
+        global: GlobalArgs,
+    },
+
     /// Fuzz endpoints with a wordlist
     Fuzz {
         /// Target URL to fuzz
@@ -211,4 +220,10 @@ pub struct GlobalArgs {
     /// Show tags in report
     #[arg(long)]
     pub show_tags: bool,
+
+    /// Company/organization name for domain discovery (scan + discover)
+    /// Use --corp "Org Name" to discover domains, or --corp (empty) for
+    /// auto-detection from target URL.
+    #[arg(long, num_args = 0..=1, default_missing_value = "")]
+    pub corp: Option<String>,
 }

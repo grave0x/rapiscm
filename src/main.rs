@@ -1,6 +1,7 @@
 mod check;
 mod cli;
 mod config;
+mod discover;
 mod error;
 mod extract;
 mod filter;
@@ -40,7 +41,18 @@ fn get_global(cli: &cli::Cli) -> &cli::GlobalArgs {
         cli::Command::Spec { global, .. } => global,
         cli::Command::Url { global, .. } => global,
         cli::Command::Scan { global, .. } => global,
+        cli::Command::Corp { global, .. } => global,
         cli::Command::Fuzz { global, .. } => global,
+    }
+}
+
+/// Extract the target string from a command (for auto-detect org from URL).
+fn get_target_str(cmd: &cli::Command) -> Option<&str> {
+    match cmd {
+        cli::Command::Spec { file, .. } => file.to_str(),
+        cli::Command::Url { url, .. } => Some(url.as_str()),
+        cli::Command::Scan { target, .. } => Some(target.as_str()),
+        _ => None,
     }
 }
 
@@ -49,6 +61,41 @@ async fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let g = get_global(&cli);
     init_logging(&g.log_level, &g.log_filter, &g.log_format);
+
+    // ── Corp subcommand: discovery-only mode ──
+    if let cli::Command::Corp { name, .. } = &cli.command {
+        let keys = config::load_config();
+        let disc_config = discover::DiscoverConfig {
+            org_name: name.clone(),
+            api_keys: keys,
+        };
+        let domains = discover::run_discover(&disc_config).await?;
+        let json = serde_json::to_string_pretty(&domains)
+            .map_err(|e| anyhow::anyhow!("serialize: {e}"))?;
+        println!("{json}");
+        discover::save_report(&domains, name)?;
+        tracing::info!("Found {} domains for {name}", domains.len());
+        return Ok(());
+    }
+
+    // ── --corp flag: run discovery before scan, save report ──
+    if let Some(org_val) = &g.corp {
+        let keys = config::load_config();
+        let org_name = if org_val.is_empty() {
+            // Auto-detect org name from target URL
+            let target_str = get_target_str(&cli.command).unwrap_or("unknown");
+            discover::crtsh::auto_detect_org(target_str).await?
+        } else {
+            org_val.clone()
+        };
+        let disc_config = discover::DiscoverConfig {
+            org_name: org_name.clone(),
+            api_keys: keys,
+        };
+        let domains = discover::run_discover(&disc_config).await?;
+        discover::save_report(&domains, &org_name)?;
+        tracing::info!("Discovered {} domains for {org_name}", domains.len());
+    }
 
     match &cli.command {
         cli::Command::Fuzz {
@@ -125,6 +172,9 @@ async fn main() -> anyhow::Result<()> {
             } else {
                 println!("No matches found.");
             }
+        }
+        cli::Command::Corp { .. } => {
+            unreachable!("corp mode handled above")
         }
         cmd => {
             let config = config::ScanConfig::from_cli(cli::Cli {

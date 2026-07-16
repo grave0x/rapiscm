@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use crate::cli::{Cli, Command};
 use crate::error::{Error, Result};
-use crate::types::{AuthConfig, OutputFormat, Target};
+use crate::types::{ApiKeys, AuthConfig, OutputFormat, Target};
 
 /// Resolved, validated configuration from CLI args.
 #[derive(Debug, Clone)]
@@ -43,6 +43,7 @@ pub struct ScanConfig {
     pub filter: Vec<String>,
     pub exclude: Vec<String>,
     pub show_tags: bool,
+    pub corp: Option<String>,
 }
 
 impl ScanConfig {
@@ -85,6 +86,7 @@ impl ScanConfig {
             filter: global.filter.clone(),
             exclude: global.exclude.clone(),
             show_tags: global.show_tags,
+            corp: global.corp.clone(),
         })
     }
 
@@ -120,6 +122,7 @@ impl ScanConfig {
                 let parsed = parse_url(&target)?;
                 (Target::Url(parsed), global)
             }
+            Command::Corp { .. } => unreachable!("corp mode handled separately in main"),
         };
 
         let headers = parse_headers(&global.headers)?;
@@ -164,8 +167,47 @@ impl ScanConfig {
             filter: global.filter,
             exclude: global.exclude,
             show_tags: global.show_tags,
+            corp: global.corp,
         })
     }
+}
+
+/// Load API keys from ~/.config/rapiscm/config.toml.
+/// Returns default (all None) if file missing or unreadable.
+pub fn load_config() -> ApiKeys {
+    let path = config_path();
+    let content = match std::fs::read_to_string(&path) {
+        Ok(c) => c,
+        Err(_) => return ApiKeys::default(),
+    };
+
+    let table: toml::Value = match content.parse() {
+        Ok(t) => t,
+        Err(_) => return ApiKeys::default(),
+    };
+
+    let keys = table.get("api_keys");
+    ApiKeys {
+        google_api_key: keys
+            .and_then(|k| k.get("google_api_key"))
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        google_cx: keys
+            .and_then(|k| k.get("google_cx"))
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        shodan_api_key: keys
+            .and_then(|k| k.get("shodan_api_key"))
+            .and_then(|v| v.as_str())
+            .map(String::from),
+    }
+}
+
+fn config_path() -> PathBuf {
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_else(|_| ".".into());
+    PathBuf::from(home).join(".config/rapiscm/config.toml")
 }
 
 /// Parse a URL string, trying `https://` prefix if no scheme is present.
@@ -307,5 +349,12 @@ mod tests {
             result[0],
             ("Content-Type".into(), "application/json".into())
         );
+    }
+
+    #[test]
+    fn test_load_config_default() {
+        let keys = load_config();
+        // Should return default regardless of whether file exists
+        assert!(keys.google_api_key.is_none());
     }
 }

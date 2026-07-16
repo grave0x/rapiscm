@@ -137,6 +137,7 @@ mod tests {
             filter: vec![],
             exclude: vec![],
             show_tags: false,
+            corp: None,
         }
     }
 

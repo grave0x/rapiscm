@@ -121,3 +121,29 @@ pub enum OutputFormat {
     Json,
     Markdown,
 }
+
+/// A domain discovered for a company/organization.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct DiscoveredDomain {
+    pub domain: String,
+    /// Which discovery sources found this domain.
+    pub sources: Vec<String>,
+    /// TLS certificate subject names from crt.sh.
+    pub cert_subjects: Vec<String>,
+    /// Autonomous System Number, if known.
+    pub asn: Option<u32>,
+    /// ASN organization name.
+    pub asn_org: Option<String>,
+    /// IP ranges (CIDR) associated with this domain's infrastructure.
+    pub ip_ranges: Vec<String>,
+    /// Organization name from registry / RDAP data.
+    pub org_name: Option<String>,
+}
+
+/// API keys for gated discovery sources, loaded from config file.
+#[derive(Debug, Clone, Default)]
+pub struct ApiKeys {
+    pub google_api_key: Option<String>,
+    pub google_cx: Option<String>,
+    pub shodan_api_key: Option<String>,
+}

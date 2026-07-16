@@ -201,6 +201,7 @@ mod tests {
             filter: vec![],
             exclude: vec![],
             show_tags: false,
+            corp: None,
         };
 
         let runner = ScanRunner::new(&config).unwrap();

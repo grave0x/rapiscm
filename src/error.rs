@@ -25,6 +25,15 @@ pub enum Error {
 
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
+
+    #[error("config read error: {0}")]
+    ConfigRead(String),
+
+    #[error("discovery HTTP error from {src}: {detail}")]
+    DiscoveryHttp { src: &'static str, detail: String },
+
+    #[error("discovery parse error from {src}: {detail}")]
+    DiscoveryParse { src: &'static str, detail: String },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
