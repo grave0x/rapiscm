@@ -22,8 +22,8 @@ pub async fn run_spec_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
         ep.tags = crate::tag::tag_endpoint(ep);
     }
 
-    // Apply tag filtering.
-    crate::tag::filter_endpoints(&mut endpoints, &config.filter_tag, &config.exclude_tag);
+    // Apply filters.
+    crate::filter::filter_endpoints(&mut endpoints, config);
 
     // Apply auth header.
     if let Some(auth_header) = crate::types::auth_to_header(&config.auth) {
@@ -59,6 +59,9 @@ pub async fn run_spec_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
     for r in &mut results {
         r.tags = crate::tag::tag_response(r);
     }
+
+    // Apply status filters on results.
+    crate::filter::filter_results(&mut results, config);
 
     info!("scan complete: {} results", results.len());
     Ok(results)

@@ -7,6 +7,7 @@ pub mod cli;
 pub mod config;
 pub mod error;
 pub mod extract;
+pub mod filter;
 pub mod fuzz;
 pub mod parser;
 pub mod report;

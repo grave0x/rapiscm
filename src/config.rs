@@ -34,6 +34,15 @@ pub struct ScanConfig {
 
     pub crawl: bool,
     pub depth: usize,
+    pub filter_path: Vec<String>,
+    pub exclude_path: Vec<String>,
+    pub filter_method: Vec<String>,
+    pub exclude_method: Vec<String>,
+    pub filter_status: Vec<String>,
+    pub exclude_status: Vec<String>,
+    pub filter: Vec<String>,
+    pub exclude: Vec<String>,
+    pub show_tags: bool,
 }
 
 impl ScanConfig {
@@ -67,6 +76,15 @@ impl ScanConfig {
             headed: global.headed,
             crawl: global.crawl,
             depth: global.depth,
+            filter_path: global.filter_path.clone(),
+            exclude_path: global.exclude_path.clone(),
+            filter_method: global.filter_method.clone(),
+            exclude_method: global.exclude_method.clone(),
+            filter_status: global.filter_status.clone(),
+            exclude_status: global.exclude_status.clone(),
+            filter: global.filter.clone(),
+            exclude: global.exclude.clone(),
+            show_tags: global.show_tags,
         })
     }
 
@@ -137,6 +155,15 @@ impl ScanConfig {
             headed: global.headed,
             crawl: global.crawl,
             depth: global.depth,
+            filter_path: global.filter_path,
+            exclude_path: global.exclude_path,
+            filter_method: global.filter_method,
+            exclude_method: global.exclude_method,
+            filter_status: global.filter_status,
+            exclude_status: global.exclude_status,
+            filter: global.filter,
+            exclude: global.exclude,
+            show_tags: global.show_tags,
         })
     }
 }

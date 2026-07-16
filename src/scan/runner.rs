@@ -192,6 +192,15 @@ mod tests {
             headed: false,
             crawl: false,
             depth: 2,
+            filter_path: vec![],
+            exclude_path: vec![],
+            filter_method: vec![],
+            exclude_method: vec![],
+            filter_status: vec![],
+            exclude_status: vec![],
+            filter: vec![],
+            exclude: vec![],
+            show_tags: false,
         };
 
         let runner = ScanRunner::new(&config).unwrap();

@@ -3,6 +3,7 @@ mod cli;
 mod config;
 mod error;
 mod extract;
+mod filter;
 mod fuzz;
 mod parser;
 mod report;

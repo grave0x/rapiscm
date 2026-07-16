@@ -175,4 +175,40 @@ pub struct GlobalArgs {
     /// Maximum crawl depth (default: 2, only used with --crawl)
     #[arg(long, default_value = "2")]
     pub depth: usize,
+
+    /// Glob path include filter
+    #[arg(long)]
+    pub filter_path: Vec<String>,
+
+    /// Glob path exclude filter
+    #[arg(long)]
+    pub exclude_path: Vec<String>,
+
+    /// Method include filter (repeatable)
+    #[arg(long)]
+    pub filter_method: Vec<String>,
+
+    /// Method exclude filter (repeatable)
+    #[arg(long)]
+    pub exclude_method: Vec<String>,
+
+    /// Status range include filter (e.g. 200,200-299)
+    #[arg(long)]
+    pub filter_status: Vec<String>,
+
+    /// Status range exclude filter
+    #[arg(long)]
+    pub exclude_status: Vec<String>,
+
+    /// Expression filter (tag:rest AND tag:v2 AND status:2xx)
+    #[arg(long)]
+    pub filter: Vec<String>,
+
+    /// Expression exclude
+    #[arg(long)]
+    pub exclude: Vec<String>,
+
+    /// Show tags in report
+    #[arg(long)]
+    pub show_tags: bool,
 }
