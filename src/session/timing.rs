@@ -180,7 +180,7 @@ pub fn format_timing_analytics(ta: &TimingAnalytics) -> String {
     ));
 
     if !ta.bursts.is_empty() {
-        out.push_str(&format!("\nBursts (≥10 req/s):\n"));
+        out.push_str("\nBursts (≥10 req/s):\n");
         for b in &ta.bursts {
             let urls: Vec<&str> = b.urls.iter().map(|s| s.as_str()).collect();
             out.push_str(&format!(
@@ -204,7 +204,7 @@ pub fn format_timing_analytics(ta: &TimingAnalytics) -> String {
         out.push_str("\nSlowest endpoints (p99):\n");
         let mut endpoints: Vec<(&String, &TimingDistribution)> =
             ta.per_endpoint_timing.iter().collect();
-        endpoints.sort_by(|a, b| b.1.p99_ms.cmp(&a.1.p99_ms));
+        endpoints.sort_by_key(|b| std::cmp::Reverse(b.1.p99_ms));
         for (path, dist) in endpoints.iter().take(10) {
             out.push_str(&format!(
                 "  {}    {}ms (p50 {})ms\n",
@@ -277,7 +277,7 @@ fn parse_iso8601(s: &str) -> Option<u64> {
 
     // Days since epoch (simplified, not handling leap seconds).
     let days = date_to_days(year, month, day)?;
-    let total_secs = days as u64 * 86400 + hour as u64 * 3600 + min as u64 * 60 + sec as u64;
+    let total_secs = days * 86400 + hour as u64 * 3600 + min as u64 * 60 + sec as u64;
     Some(total_secs * 1000 + millis)
 }
 
@@ -291,7 +291,7 @@ fn parse2(chars: &[char]) -> Option<u32> {
 }
 
 fn date_to_days(year: u32, month: u32, day: u32) -> Option<u64> {
-    if month < 1 || month > 12 || day < 1 || day > 31 {
+    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
         return None;
     }
     let (y, m) = if month <= 2 {
@@ -521,7 +521,7 @@ mod tests {
     fn test_detect_bursts() {
         let base = parse_iso8601("2026-07-16T14:30:00Z").unwrap();
         let mut results = Vec::new();
-        for i in 0..15 {
+        for _i in 0..15 {
             results.push(ResponseResult {
                 timestamp: None,
                 endpoint_method: "GET".into(),

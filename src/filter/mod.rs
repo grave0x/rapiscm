@@ -93,7 +93,6 @@ mod tests {
     use crate::cli::GlobalArgs;
     use crate::types::Target;
     use reqwest::Url;
-    use std::time::Duration;
 
     fn test_ep(method: &str, path: &str) -> Endpoint {
         Endpoint {
