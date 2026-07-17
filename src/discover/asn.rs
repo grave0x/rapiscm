@@ -160,14 +160,13 @@ async fn sample_rdns(client: &reqwest::Client, cidr: &str) -> Option<Vec<String>
 
         if let Ok(resp) = client.get(&url).send().await
             && let Ok(body) = resp.json::<serde_json::Value>().await
+            && let Some(answer) = body.get("Answer").and_then(|a| a.as_array())
         {
-            if let Some(answer) = body.get("Answer").and_then(|a| a.as_array()) {
-                for ans in answer {
-                    if let Some(data) = ans.get("data").and_then(|d| d.as_str()) {
-                        let domain = data.trim_end_matches('.').to_lowercase();
-                        if !domains.contains(&domain) {
-                            domains.push(domain);
-                        }
+            for ans in answer {
+                if let Some(data) = ans.get("data").and_then(|d| d.as_str()) {
+                    let domain = data.trim_end_matches('.').to_lowercase();
+                    if !domains.contains(&domain) {
+                        domains.push(domain);
                     }
                 }
             }

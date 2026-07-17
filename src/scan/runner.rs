@@ -124,9 +124,11 @@ async fn hit_endpoint(client: &reqwest::Client, ep: Endpoint) -> ResponseResult 
                 response_headers,
                 response_body,
                 expected_status,
+                timestamp: None,
                 checks: Vec::new(),
                 error: None,
                 tags: vec![],
+                trackers: vec![],
             }
         }
         Err(e) => {
@@ -141,9 +143,11 @@ async fn hit_endpoint(client: &reqwest::Client, ep: Endpoint) -> ResponseResult 
                 response_headers: vec![],
                 response_body: vec![],
                 expected_status,
+                timestamp: None,
                 checks: Vec::new(),
                 error: Some(e.to_string()),
                 tags: vec![],
+                trackers: vec![],
             }
         }
     }
@@ -201,6 +205,7 @@ mod tests {
             filter: vec![],
             exclude: vec![],
             show_tags: false,
+            trackers: true,
             corp: None,
         };
 

@@ -97,9 +97,11 @@ async fn hit(client: &reqwest::Client, url: &str) -> ResponseResult {
                 response_headers: headers,
                 response_body: body,
                 expected_status: None,
+                timestamp: None,
                 checks: vec![],
                 error: None,
                 tags: vec![],
+                trackers: vec![],
             }
         }
         Err(e) => ResponseResult {
@@ -111,9 +113,11 @@ async fn hit(client: &reqwest::Client, url: &str) -> ResponseResult {
             response_headers: vec![],
             response_body: vec![],
             expected_status: None,
+            timestamp: None,
             checks: vec![],
             error: Some(e.to_string()),
             tags: vec![],
+            trackers: vec![],
         },
     }
 }

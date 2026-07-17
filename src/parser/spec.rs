@@ -69,7 +69,7 @@ fn endpoints_from_spec(spec: &OpenAPI) -> Result<Vec<Endpoint>> {
         );
 
         // Sort by name length descending to avoid partial replacements
-        param_examples.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+        param_examples.sort_by_key(|b| std::cmp::Reverse(b.0.len()));
         for (name, value) in &param_examples {
             url_str = url_str.replace(&format!("{{{name}}}"), value);
         }

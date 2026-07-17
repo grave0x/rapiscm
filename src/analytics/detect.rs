@@ -1,6 +1,8 @@
-/// Tracker signature database — ~200 entries, ~3KB, zero deps.
+//! Tracker signature database — ~200 entries, ~3KB, zero deps.
 
-#[derive(Debug, Clone, PartialEq)]
+use serde::Serialize;
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum TrackerCategory {
     Analytics,
     Advertising,
@@ -27,7 +29,7 @@ impl TrackerCategory {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TrackerSignature {
     pub name: &'static str,
     pub category: TrackerCategory,
@@ -84,7 +86,7 @@ pub fn detect_trackers(body: &str, headers: &[(String, String)]) -> Vec<TrackerS
 }
 
 /// Classify a cookie by name.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum CookiePurpose {
     Necessary,
     Preferences,

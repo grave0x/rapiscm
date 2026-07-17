@@ -77,7 +77,7 @@ async fn discover_chrome(
 
     // Collect links from initial page.
     if let Ok(html) = page_html(&page).await {
-        all_urls.extend(crate::parser::url::extract_urls_from_html(&html, &base));
+        all_urls.extend(crate::extract::html::extract_html(&html, &base));
     }
 
     // Interactively click same-origin links to discover more endpoints.
@@ -87,7 +87,7 @@ async fn discover_chrome(
         if let Ok(new_page) = browser.new_page(link.as_str()).await {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
             if let Ok(html2) = page_html(&new_page).await {
-                all_urls.extend(crate::parser::url::extract_urls_from_html(&html2, &base));
+                all_urls.extend(crate::extract::html::extract_html(&html2, &base));
             }
         }
     }
@@ -177,7 +177,7 @@ async fn discover_firefox(
     let base = url.clone();
 
     let html = client.source().await?;
-    all_urls.extend(crate::parser::url::extract_urls_from_html(&html, &base));
+    all_urls.extend(crate::extract::html::extract_html(&html, &base));
 
     // Click all same-origin links.
     let links = find_firefox_links(&client, &base).await;
@@ -189,7 +189,7 @@ async fn discover_firefox(
         }
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         if let Ok(html2) = client.source().await {
-            all_urls.extend(crate::parser::url::extract_urls_from_html(&html2, &base));
+            all_urls.extend(crate::extract::html::extract_html(&html2, &base));
         }
     }
 

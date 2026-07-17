@@ -1,4 +1,5 @@
 use crate::types::ResponseResult;
+use std::collections::BTreeMap;
 
 fn status_color(code: u16) -> &'static str {
     match code / 100 {
@@ -37,19 +38,30 @@ pub fn format_table(results: &[ResponseResult]) -> String {
         let time = format_time(r.response_time_ms);
         let checks_str = format_checks(&r.checks);
         let tags_str = format_tags(&r.tags);
+        let trackers_str = format_trackers_count(&r.trackers);
         out.push_str(&format!(
-            "{} {}  {}  {}  {}  {}", // space-aligned approximately
-            r.endpoint_method, r.endpoint_url, code_str, time, tags_str, checks_str,
+            "{} {}  {}  {}  {}  {}  {}",
+            r.endpoint_method, r.endpoint_url, code_str, time, tags_str, trackers_str, checks_str,
         ));
         out.push('\n');
     }
+
+    // Append tracker summary section.
+    let summary = tracker_category_summary(results);
+    if !summary.is_empty() {
+        out.push_str("\n\x1b[1mTracker Summary\x1b[0m\n");
+        for (cat, count) in &summary {
+            out.push_str(&format!("  {cat}: {count}\n"));
+        }
+    }
+
     out
 }
 
 /// Format results as a markdown table.
 pub fn format_markdown_table(results: &[ResponseResult]) -> String {
-    let mut out = String::from("| Method | URL | Status | Time | Tags | Checks |\n");
-    out.push_str("|--------|-----|--------|------|------|--------|\n");
+    let mut out = String::from("| Method | URL | Status | Time | Tags | Trackers | Checks |\n");
+    out.push_str("|--------|-----|--------|------|------|----------|--------|\n");
     for r in results {
         let status = if r.status_code > 0 {
             r.status_code.to_string()
@@ -58,12 +70,24 @@ pub fn format_markdown_table(results: &[ResponseResult]) -> String {
         };
         let time = format_time(r.response_time_ms);
         let tags_str = format_tags_md(&r.tags);
+        let trackers_str = format_trackers_count(&r.trackers);
         let checks_str = format_checks_md(&r.checks);
         out.push_str(&format!(
-            "| {} | {} | {} | {} | {} | {} |\n",
-            r.endpoint_method, r.endpoint_url, status, time, tags_str, checks_str
+            "| {} | {} | {} | {} | {} | {} | {} |\n",
+            r.endpoint_method, r.endpoint_url, status, time, tags_str, trackers_str, checks_str
         ));
     }
+
+    // Append tracker breakdown.
+    let summary = tracker_category_summary(results);
+    if !summary.is_empty() {
+        out.push_str("\n### Tracker Categories\n\n| Category | Count |\n|----------|-------|\n");
+        for (cat, count) in &summary {
+            out.push_str(&format!("| {cat} | {count} |\n"));
+        }
+        out.push('\n');
+    }
+
     out
 }
 
@@ -137,4 +161,21 @@ fn format_checks_md(checks: &[crate::types::Check]) -> String {
         })
         .collect();
     parts.join("<br>")
+}
+
+fn format_trackers_count(trackers: &[crate::analytics::TrackerSignature]) -> String {
+    if trackers.is_empty() {
+        return String::new();
+    }
+    trackers.len().to_string()
+}
+
+fn tracker_category_summary(results: &[ResponseResult]) -> BTreeMap<&'static str, usize> {
+    let mut map: BTreeMap<&'static str, usize> = BTreeMap::new();
+    for r in results {
+        for t in &r.trackers {
+            *map.entry(t.category.as_str()).or_insert(0) += 1;
+        }
+    }
+    map
 }

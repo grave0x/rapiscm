@@ -25,26 +25,6 @@ pub fn extract_robots_txt(text: &str, base: &Url) -> Vec<Url> {
     urls
 }
 
-/// Extract URLs from sitemap XML content.
-pub fn extract_sitemap(text: &str, _base: &Url) -> Vec<Url> {
-    let mut urls = Vec::new();
-    // Simple loc tag extraction (no XML parser dependency)
-    let marker = "<loc>";
-    let end_marker = "</loc>";
-    for (i, _) in text.match_indices(marker) {
-        let start = i + marker.len();
-        if let Some(end) = text[start..].find(end_marker) {
-            let url_str = &text[start..start + end].trim();
-            if let Ok(url) = Url::parse(url_str)
-                && (url.scheme() == "http" || url.scheme() == "https")
-            {
-                urls.push(url);
-            }
-        }
-    }
-    urls
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -56,13 +36,5 @@ mod tests {
         let urls = extract_robots_txt(robots, &base);
         assert!(urls.iter().any(|u| u.as_str().contains("sitemap.xml")));
         assert!(urls.iter().any(|u| u.as_str().contains("/admin")));
-    }
-
-    #[test]
-    fn test_sitemap_locs() {
-        let base = Url::parse("https://example.com").unwrap();
-        let sitemap = r#"<?xml version="1.0"?><urlset><url><loc>https://example.com/page1</loc></url></urlset>"#;
-        let urls = extract_sitemap(sitemap, &base);
-        assert_eq!(urls.len(), 1);
     }
 }

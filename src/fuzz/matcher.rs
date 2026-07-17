@@ -143,8 +143,10 @@ mod tests {
             response_body: vec![],
             expected_status: None,
             checks: vec![],
+            timestamp: None,
             error: None,
             tags: vec![],
+            trackers: vec![],
         }
     }
 

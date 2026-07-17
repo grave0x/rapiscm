@@ -1,17 +1,3 @@
-/// Wordlist management for fuzzing.
-use std::path::Path;
-
-/// Load a wordlist from a file, one entry per line.
-/// Skips empty lines and comments (#).
-pub fn load_wordlist(path: &Path) -> std::io::Result<Vec<String>> {
-    let content = std::fs::read_to_string(path)?;
-    Ok(content
-        .lines()
-        .map(|l| l.trim().to_string())
-        .filter(|l| !l.is_empty() && !l.starts_with('#'))
-        .collect())
-}
-
 /// Extended API path wordlist (~200 entries) for fuzzing.
 pub fn api_paths() -> Vec<&'static str> {
     vec![
@@ -142,68 +128,5 @@ pub fn api_paths() -> Vec<&'static str> {
         "/.well-known",
         "/.well-known/security.txt",
         "/.well-known/openid-configuration",
-    ]
-}
-
-/// Common parameter name wordlist for param fuzzing.
-pub fn param_names() -> Vec<&'static str> {
-    vec![
-        "id",
-        "ids",
-        "user_id",
-        "userId",
-        "user-id",
-        "token",
-        "access_token",
-        "refresh_token",
-        "api_key",
-        "apikey",
-        "api-key",
-        "key",
-        "secret",
-        "password",
-        "pass",
-        "pwd",
-        "email",
-        "email_address",
-        "username",
-        "page",
-        "page_size",
-        "limit",
-        "offset",
-        "cursor",
-        "sort",
-        "order",
-        "direction",
-        "filter",
-        "search",
-        "q",
-        "query",
-        "type",
-        "format",
-        "response_type",
-        "callback",
-        "redirect",
-        "redirect_uri",
-        "url",
-        "link",
-        "href",
-        "target",
-        "name",
-        "title",
-        "slug",
-        "lang",
-        "locale",
-        "timezone",
-        "debug",
-        "verbose",
-        "pretty",
-        "fields",
-        "include",
-        "expand",
-        "embed",
-        "_method",
-        "_token",
-        "csrf_token",
     ]
 }

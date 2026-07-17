@@ -20,6 +20,7 @@ Rust API scanner. Point at an API spec or a URL to scan.
 12. [Task System](#12-task-system)
 13. [Tracker Analytics](#13-tracker-analytics-engine)
 14. [Non-goals](#14-non-goals)
+15. [Session Replay Mode](#15-session-replay-mode)
 
 ---
 
@@ -35,6 +36,7 @@ rapiscm fuzz <target>          fuzz endpoints with wordlist
 rapiscm ip <target>            IP/range/CIDR port scan + service detection
 rapiscm proxy                  HTTP/HTTPS MITM proxy (explicit)
 rapiscm mitm <interface>       Packet sniffing MITM (passive, root)
+rapiscm session <file>         replay JSONL session file through checks
 rapiscm tasks                  manage scan history
 ```
 
@@ -928,3 +930,202 @@ Likely Bot: No
 - No Bluetooth/BLE MITM
 - No GSM/SS7 interception
 - No hardware keylogger integration
+
+---
+
+## 15. Session Replay Mode
+
+### 15.1 Overview
+
+`rapiscm session <file>` reads a recorded HTTP session file (JSONL format — one JSON object per line) and replays every captured request/response through the full check pipeline. No live HTTP requests are made. This enables:
+
+- **Offline analysis**: audit recorded browsing sessions, proxy logs, or CI-generated traces
+- **Regression testing**: run the same session across different rapiscm versions and diff the check results
+- **Privacy auditing**: re-analyze session data with updated tracker signatures or stricter check rules
+- **Rate/timing analytics**: extract inter-request timing, detect rate-limit thresholds, burst patterns
+
+### 15.2 Input JSONL format
+
+Every line is a self-contained JSON object. Format designed for round-trip compatibility with rapiscm's own JSONL output (see 15.6):
+
+```json
+{
+  "timestamp": "2026-07-16T14:30:00.123Z",
+  "method": "GET",
+  "url": "https://api.example.com/users",
+  "status": 200,
+  "requestHeaders": {
+    "Accept": "application/json",
+    "Authorization": "Bearer ***"
+  },
+  "responseHeaders": {
+    "content-type": "application/json",
+    "set-cookie": "_ga=GA1.2.abc123;..."
+  },
+  "requestBody": "{\"query\":\"test\"}",
+  "responseBody": "{\"id\":1,\"name\":\"Alice\"}",
+  "responseTimeMs": 42
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `timestamp` | yes | ISO-8601 UTC — used for timing analytics, gap detection |
+| `method` | yes | HTTP method |
+| `url` | yes | Full URL including scheme, host, path, query |
+| `status` | yes | HTTP status code |
+| `requestHeaders` | no | request headers (flat string→string) |
+| `responseHeaders` | no | response headers (flat string→string) |
+| `requestBody` | no | request body as string |
+| `responseBody` | no | response body as string (base64 if binary) |
+| `responseTimeMs` | no | observed response time in ms (from session recording) |
+
+All fields except `responseTimeMs` are aligned with the existing `ResponseResult` shape for round-trip.
+
+### 15.3 Session mode flow
+
+1. Validate file path, open file, read lines, parse each as JSON
+2. Skip malformed lines with warning (collect in error count)
+3. Convert each parsed line to `ResponseResult` (inject empty `checks`, `trackers`)
+4. Sort entries by `timestamp` (if any) — otherwise preserve file order
+5. Run check pipeline exactly as in live scan:
+   - Sync checks: security headers, HTTP status, response time, response size, schema (if spec context available), tracker detection
+   - Async checks: CORS, auth (if request/response provides enough context — skip if headers incomplete)
+6. Run timing/rate analytics pass:
+   - Compute inter-request gaps (`t_n - t_{n-1}`)
+   - Detect bursts: sliding window of requests/sec
+   - Identify slow endpoints: p50/p90/p99 per endpoint
+   - Rate-limit detection: sequences where status changes to 429/503 after request burst
+7. If `--save`: store result as task
+8. Report (same output formats: table, json, md)
+
+### 15.4 Timing / Rate analytics
+
+Additional analytics available in session mode (and optionally in scan mode with `--timing` flag):
+
+| Metric | How | Output |
+|--------|-----|--------|
+| **Inter-request gap** | diff between consecutive `timestamp` fields | histogram (min, p50, p90, p99, max) |
+| **Burst detection** | sliding 1s window count | number of bursts, max burst size |
+| **Rate-limit threshold** | find first 429/503 after increasing request rate | estimated req/s trigger |
+| **Slow endpoints** | percentile timing per endpoint URL | p50/p90/p99 per endpoint |
+
+```rust
+pub struct TimingAnalytics {
+    pub total_requests: usize,
+    pub duration_seconds: f64,
+    pub requests_per_second: f64,
+    pub inter_request_gaps: TimingDistribution,
+    pub bursts: Vec<Burst>,           // time, count
+    pub rate_limits_hit: Vec<RateLimitEvent>,
+    pub per_endpoint_timing: HashMap<String, TimingDistribution>,
+}
+
+pub struct TimingDistribution {
+    pub min_ms: u64, pub p50_ms: u64,
+    pub p90_ms: u64, pub p99_ms: u64, pub max_ms: u64,
+}
+
+pub struct Burst {
+    pub at: String,            // ISO-8601
+    pub requests_in_second: u32,
+}
+
+pub struct RateLimitEvent {
+    pub at: String,
+    pub url: String,
+    pub preceding_rate: f64,
+}
+```
+
+Output appended to the standard report when `--timing` is set:
+
+```
+Timing Analytics:
+  Duration:  47.3s     Total requests: 184
+  Req/s:     3.9       (range 0.2 – 47.1)
+
+  Inter-request gaps:  min 1ms  p50 120ms  p90 890ms  p99 3.2s  max 12.1s
+
+  Bursts (≥10 req/s):
+    14:30:01Z     37 req/s   [/api/search, /api/feed, ...]
+    14:31:15Z     22 req/s   [/api/users, /api/posts]
+
+  Rate limits hit:
+    14:30:02Z    429 on /api/search  (preceding rate 37 req/s)
+    14:31:16Z    429 on /api/posts    (preceding rate 22 req/s)
+
+  Slowest endpoints (p99):
+    /api/search      3.2s
+    /api/export      2.1s
+    /api/feed        890ms
+```
+
+### 15.5 Session flags
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--timing` | false | Enable timing/rate analytics pass |
+| `--max-parse-errors` | 10 | Max malformed lines before abort |
+| `--skip-cors` | false | Skip CORS async checks (no live OPTIONS) |
+| `--skip-auth` | false | Skip auth checks (no live re-request) |
+
+### 15.6 JSONL format alignment (round-trip)
+
+rapiscm's JSON output format (`--output json` in scan/session mode) uses a superset of the session input format, so `rapiscm scan ... --output json --save` produces output that can be fed back into `rapiscm session <file>`:
+
+```
+rapiscm url https://api.example.com --output json --save
+rapiscm session ~/.local/share/rapiscm/tasks/0001-*/results.json    # replay saved scan
+```
+
+The `ResponseResult` JSON already contains all session-input fields. When saving session output, each entry is formatted as a JSONL line with the same top-level keys:
+
+```
+{"timestamp":"...", "method":"GET", "url":"...", "status":200, ...}
+```
+
+This enables:
+- **CI pipeline**: scan → save → replay later with updated checks
+- **Team sharing**: send session file to colleague → replay without hitting live API
+- **Regression**: capture a session → commit to repo → replay on every PR
+
+### 15.7 Integration with existing features
+
+| Feature | How session mode integrates |
+|---------|---------------------------|
+| Tracker analytics | Runs tracker detection on all response bodies/headers from session |
+| Task system | Session results can be `--save`d as tasks, enabling diff/rebuild/export |
+| Timing analytics | Only available in session mode (has `timestamp` field) |
+| Output formats | Table, JSON, Markdown all supported |
+| Filter pipeline | `--filter-path`, `--filter-method`, `--filter-status` apply to session results |
+
+### 15.8 New files
+
+| File | Purpose | LOC | Deps |
+|------|---------|-----|------|
+| `src/session/mod.rs` | SessionRunner, SessionConfig, dispatch | 60 | serde_json |
+| `src/session/parse.rs` | JSONL line parser, validation, `ResponseResult` conversion | 100 | serde_json |
+| `src/session/timing.rs` | TimingAnalytics struct, burst detection, rate-limit estimator | 140 | — |
+| `src/cli.rs` | Add `session` subcommand + flags | +20 | clap |
+| `src/config.rs` | Add `session_file`, `timing`, `max_parse_errors`, `skip_cors`, `skip_auth` fields | +15 | — |
+| `src/main.rs` | Dispatch `Command::Session` | +10 | — |
+
+**Total new LOC:** ~345
+**New deps:** Zero (all JSON via existing serde_json)
+
+### 15.9 Tests
+
+| Test | What it verifies |
+|------|-----------------|
+| `test_session_parse_valid` | Valid JSONL line → correct `ResponseResult` |
+| `test_session_parse_malformed` | Malformed lines → warning + skip |
+| `test_session_parse_max_errors` | `--max-parse-errors` reached → abort |
+| `test_session_replay_checks` | Parsed session runs through check pipeline |
+| `test_session_timing_gaps` | Inter-request gaps computed correctly |
+| `test_session_burst_detection` | Bursts detected at correct thresholds |
+| `test_session_rate_limit_detection` | 429 after burst flags rate-limit event |
+| `test_session_roundtrip` | Scan JSONL → session replay → identical checks |
+| `test_session_empty` | Empty file → zero results, no crash |
+| `test_session_no_timestamps` | Missing timestamps → timing analytics skipped |
+| `test_session_skip_async` | `--skip-cors`/`--skip-auth` skips async checks |

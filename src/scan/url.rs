@@ -200,6 +200,14 @@ pub async fn run_url_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
         check::run_checks(r);
     }
 
+    // Detect trackers/analytics in responses.
+    if config.trackers {
+        for r in &mut results {
+            let body = String::from_utf8_lossy(&r.response_body);
+            r.trackers = crate::analytics::detect_trackers(&body, &r.response_headers);
+        }
+    }
+
     // Run async checks (CORS probe, auth probe).
     check::run_async_checks(config, &mut results).await;
 

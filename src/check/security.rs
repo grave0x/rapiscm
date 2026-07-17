@@ -74,11 +74,7 @@ fn check_x_frame_options(headers: &[(String, String)]) -> Check {
     Check {
         name: "X-Frame-Options".into(),
         passed: present,
-        severity: if present {
-            Severity::Info
-        } else {
-            Severity::Info
-        },
+        severity: Severity::Info,
         message: if present {
             "X-Frame-Options header present".into()
         } else {
@@ -96,11 +92,7 @@ fn check_cache_control(headers: &[(String, String)]) -> Check {
     Check {
         name: "Cache-Control".into(),
         passed: no_store,
-        severity: if no_store {
-            Severity::Info
-        } else {
-            Severity::Info
-        },
+        severity: Severity::Info,
         message: if no_store {
             "Cache-Control: no-store present".into()
         } else {

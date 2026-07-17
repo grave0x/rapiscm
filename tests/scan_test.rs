@@ -41,6 +41,7 @@ fn base_config(port: u16) -> ScanConfig {
         filter: vec![],
         exclude: vec![],
         show_tags: false,
+        trackers: true,
         corp: None,
     }
 }

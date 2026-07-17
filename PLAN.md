@@ -1,6 +1,6 @@
 # rapiscm plan
 
-12 phases split into 3 groups of 4. After each group: quality cycle (3 turns).
+16 phases split into 4 groups of 4. After each group: quality cycle (3 turns).
 
 ---
 
@@ -274,6 +274,24 @@ src/
 
 ---
 
+### Group 4: Session Analysis + Advanced Features (phases 13–16)
+
+**Phase 13 — Session replay mode**
+- Write `src/session/` module:
+  - `mod.rs`: `SessionRunner`, `SessionConfig`, dispatch
+  - `parse.rs`: JSONL line parser, validate `timestamp`/`method`/`url`/`status`, convert to `ResponseResult`
+  - `timing.rs`: `TimingAnalytics` — inter-request gaps, burst detection, rate-limit event detection
+- Wire into `main.rs`: `rapiscm session <file>` dispatches `SessionRunner`
+- Session flow: parse JSONL → build `ResponseResult` vec → run check pipeline (sync+async, skip CORS/auth if no headers) → timing pass (if `--timing`) → report
+- Round-trip: rapiscm JSONL output is valid session input
+- Add `--timing`, `--max-parse-errors`, `--skip-cors`, `--skip-auth` flags
+- JSONL format documented in SPEC.md §15.2
+- Verify: create test JSONL files, run session replay, compare check results with live scan
+
+**Phase 14 — (planned)** Sitemap discovery from robots.txt, sitemap.xml, common paths
+**Phase 15 — (planned)** Authentication replay: session cookie injection, token refresh
+**Phase 16 — (planned)** Enhanced security checks: CORS wildcard detection, info disclosure
+
 ## Quality Cycle detail
 
 After each group of 4 phases, run this 3 times:
@@ -296,6 +314,6 @@ Each turn produces either fixes or confidence. After 3 turns, move to next phase
 ## Summary timeline
 
 ```
-Phase  1  2  3  4  │QC│  5  6  7  8  │QC│  9 10 11 12  │QC│
-Week   1  1  2  2   2W  3  3  4  4   4W  5  5  6  6   6W
+Phase  1  2  3  4  │QC│  5  6  7  8  │QC│  9 10 11 12  │QC│ 13 14 15 16  │QC│
+Week   1  1  2  2   2W  3  3  4  4   4W  5  5  6  6   6W  7  7  8  8   8W
 ```
