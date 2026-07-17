@@ -10,6 +10,7 @@ mod fuzz;
 mod parser;
 mod report;
 mod scan;
+mod session;
 mod tag;
 mod types;
 
@@ -44,6 +45,7 @@ fn get_global(cli: &cli::Cli) -> &cli::GlobalArgs {
         cli::Command::Scan { global, .. } => global,
         cli::Command::Corp { global, .. } => global,
         cli::Command::Fuzz { global, .. } => global,
+        cli::Command::Session { global, .. } => global,
     }
 }
 
@@ -62,6 +64,31 @@ async fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let g = get_global(&cli);
     init_logging(&g.log_level, &g.log_filter, &g.log_format);
+
+    // ── Session subcommand: replay mode ──
+    if let cli::Command::Session {
+        file,
+        timing,
+        max_parse_errors,
+        skip_cors,
+        skip_auth,
+        global,
+    } = &cli.command
+    {
+        let cfg = session::SessionConfig {
+            file: file.clone(),
+            timing: *timing,
+            max_parse_errors: *max_parse_errors,
+            skip_cors: *skip_cors,
+            skip_auth: *skip_auth,
+            output: config::parse_output(&global.output)
+                .map_err(|e| anyhow::anyhow!("output format: {e}"))?,
+        };
+        session::run_session(&cfg)
+            .await
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
+        return Ok(());
+    }
 
     // ── Corp subcommand: discovery-only mode ──
     if let cli::Command::Corp { name, .. } = &cli.command {
@@ -114,68 +141,25 @@ async fn main() -> anyhow::Result<()> {
             let base_url = reqwest::Url::parse(target)
                 .or_else(|_| reqwest::Url::parse(&format!("https://{target}")))
                 .map_err(|e| anyhow::anyhow!("invalid fuzz target: {e}"))?;
-
-            let words: Vec<String> = if let Some(path) = wordlist {
-                match std::fs::read_to_string(path) {
-                    Ok(c) => c
-                        .lines()
-                        .map(|l| l.trim().to_string())
-                        .filter(|l| !l.is_empty() && !l.starts_with('#'))
-                        .collect(),
-                    Err(e) => {
-                        tracing::warn!("wordlist read failed: {e}, using built-in");
-                        builtin_words()
-                    }
-                }
-            } else {
-                builtin_words()
-            };
-
-            let matcher = fuzz::matcher::MatchConfig {
-                match_status: mc
-                    .as_ref()
-                    .map(|s| fuzz::matcher::parse_range_list(s))
-                    .unwrap_or_default(),
-                filter_status: fc
-                    .as_ref()
-                    .map(|s| fuzz::matcher::parse_range_list(s))
-                    .unwrap_or_default(),
-                match_size: ms
-                    .as_ref()
-                    .map(|s| fuzz::matcher::parse_range_list(s))
-                    .unwrap_or_default(),
-                filter_size: fs
-                    .as_ref()
-                    .map(|s| fuzz::matcher::parse_range_list(s))
-                    .unwrap_or_default(),
-                match_regex: mr.clone(),
-                filter_regex: fr.clone(),
-                baseline: if *ac {
-                    Some(fuzz::matcher::Baseline {
-                        status: 404,
-                        size: 50,
-                    })
-                } else {
-                    None
-                },
-            };
-
             let scan_config =
                 config::ScanConfig::from_cli_global(g, types::Target::Url(base_url.clone()))?;
-
-            let runner = fuzz::runner::FuzzRunner::new(&scan_config)?;
-            let results = runner.fuzz_paths(&base_url, &words, &matcher).await;
-            if !results.is_empty() {
-                println!(
-                    "{}",
-                    report::format_results(&results, types::OutputFormat::Table)
-                );
-            } else {
-                println!("No matches found.");
-            }
+            let opts = fuzz::FuzzOpts {
+                wordlist: wordlist.clone(),
+                mc: mc.clone(),
+                fc: fc.clone(),
+                ms: ms.clone(),
+                fs: fs.clone(),
+                mr: mr.clone(),
+                fr: fr.clone(),
+                ac: *ac,
+            };
+            fuzz::run_fuzz_scan(&base_url, &opts, &scan_config).await?;
         }
         cli::Command::Corp { .. } => {
             unreachable!("corp mode handled above")
+        }
+        cli::Command::Session { .. } => {
+            unreachable!("session mode handled above")
         }
         cmd => {
             let config = config::ScanConfig::from_cli(cli::Cli {
@@ -191,11 +175,4 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
-}
-
-fn builtin_words() -> Vec<String> {
-    fuzz::wordlist::api_paths()
-        .iter()
-        .map(|s| s.to_string())
-        .collect()
 }

@@ -1,6 +1,7 @@
 use std::fmt;
 use std::path::PathBuf;
 
+use crate::analytics::TrackerSignature;
 use serde::Serialize;
 
 /// What the user pointed us at.
@@ -53,9 +54,13 @@ pub struct ResponseResult {
     pub response_body: Vec<u8>,
     /// Expected status from spec, if known.
     pub expected_status: Option<u16>,
+    /// ISO-8601 timestamp, if recorded.
+    pub timestamp: Option<String>,
     pub checks: Vec<Check>,
     pub error: Option<String>,
     pub tags: Vec<String>,
+    /// Trackers / analytics detected in the response.
+    pub trackers: Vec<TrackerSignature>,
 }
 
 /// A single check result (security header, CORS, etc.).

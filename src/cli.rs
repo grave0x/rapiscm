@@ -51,6 +51,31 @@ pub enum Command {
         global: GlobalArgs,
     },
 
+    /// Replay a recorded session from JSONL
+    Session {
+        /// Path to the JSONL session file
+        file: PathBuf,
+
+        /// Show timing analytics (bursts, gaps, rate limits)
+        #[arg(long)]
+        timing: bool,
+
+        /// Max malformed lines allowed before aborting
+        #[arg(long, default_value = "10")]
+        max_parse_errors: usize,
+
+        /// Skip CORS preflight probes during replay
+        #[arg(long)]
+        skip_cors: bool,
+
+        /// Skip auth-enforcement probes during replay
+        #[arg(long)]
+        skip_auth: bool,
+
+        #[command(flatten)]
+        global: GlobalArgs,
+    },
+
     /// Fuzz endpoints with a wordlist
     Fuzz {
         /// Target URL to fuzz
@@ -220,6 +245,10 @@ pub struct GlobalArgs {
     /// Show tags in report
     #[arg(long)]
     pub show_tags: bool,
+
+    /// Disable tracker/analytics detection
+    #[arg(long)]
+    pub no_trackers: bool,
 
     /// Company/organization name for domain discovery (scan + discover)
     /// Use --corp "Org Name" to discover domains, or --corp (empty) for

@@ -43,6 +43,7 @@ pub struct ScanConfig {
     pub filter: Vec<String>,
     pub exclude: Vec<String>,
     pub show_tags: bool,
+    pub trackers: bool,
     pub corp: Option<String>,
 }
 
@@ -86,6 +87,7 @@ impl ScanConfig {
             filter: global.filter.clone(),
             exclude: global.exclude.clone(),
             show_tags: global.show_tags,
+            trackers: !global.no_trackers,
             corp: global.corp.clone(),
         })
     }
@@ -123,6 +125,7 @@ impl ScanConfig {
                 (Target::Url(parsed), global)
             }
             Command::Corp { .. } => unreachable!("corp mode handled separately in main"),
+            Command::Session { .. } => unreachable!("session mode handled separately in main"),
         };
 
         let headers = parse_headers(&global.headers)?;
@@ -167,6 +170,7 @@ impl ScanConfig {
             filter: global.filter,
             exclude: global.exclude,
             show_tags: global.show_tags,
+            trackers: !global.no_trackers,
             corp: global.corp,
         })
     }
@@ -265,7 +269,7 @@ fn parse_auth(raw: Option<&str>) -> Result<Option<AuthConfig>> {
     }
 }
 
-fn parse_output(raw: &str) -> Result<OutputFormat> {
+pub fn parse_output(raw: &str) -> Result<OutputFormat> {
     match raw {
         "table" => Ok(OutputFormat::Table),
         "json" => Ok(OutputFormat::Json),
