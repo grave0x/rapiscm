@@ -45,6 +45,14 @@ pub struct ScanConfig {
     pub show_tags: bool,
     pub trackers: bool,
     pub corp: Option<String>,
+
+    // Task system fields.
+    pub save: bool,
+    pub task_name: Option<String>,
+    pub task_tags: Vec<String>,
+    pub no_bodies: bool,
+    pub raw: bool,
+    pub task_dir: Option<PathBuf>,
 }
 
 impl ScanConfig {
@@ -89,6 +97,12 @@ impl ScanConfig {
             show_tags: global.show_tags,
             trackers: !global.no_trackers,
             corp: global.corp.clone(),
+            save: global.save,
+            task_name: global.task_name.clone(),
+            task_tags: global.task_tag.clone(),
+            no_bodies: global.no_bodies,
+            raw: global.raw,
+            task_dir: global.task_dir.clone(),
         })
     }
 
@@ -126,6 +140,7 @@ impl ScanConfig {
             }
             Command::Corp { .. } => unreachable!("corp mode handled separately in main"),
             Command::Session { .. } => unreachable!("session mode handled separately in main"),
+            Command::Tasks { .. } => unreachable!("tasks mode handled separately in main"),
         };
 
         let headers = parse_headers(&global.headers)?;
@@ -172,6 +187,12 @@ impl ScanConfig {
             show_tags: global.show_tags,
             trackers: !global.no_trackers,
             corp: global.corp,
+            save: global.save,
+            task_name: global.task_name,
+            task_tags: global.task_tag,
+            no_bodies: global.no_bodies,
+            raw: global.raw,
+            task_dir: global.task_dir,
         })
     }
 }

@@ -43,6 +43,12 @@ fn base_config(port: u16) -> ScanConfig {
         show_tags: false,
         trackers: true,
         corp: None,
+        save: false,
+        task_name: None,
+        task_tags: vec![],
+        no_bodies: false,
+        raw: false,
+        task_dir: None,
     }
 }
 

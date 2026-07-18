@@ -2,7 +2,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use crate::analytics::TrackerSignature;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// What the user pointed us at.
 #[derive(Debug, Clone)]
@@ -43,6 +43,9 @@ pub struct Endpoint {
 }
 
 /// The result of hitting a single endpoint.
+///
+/// NOTE: `Deserialize` is manual — `trackers` is always deserialized as empty
+/// (tracker signatures use `&'static str` fields from a static database).
 #[derive(Debug, Clone, Serialize)]
 pub struct ResponseResult {
     pub endpoint_method: String,
@@ -63,8 +66,47 @@ pub struct ResponseResult {
     pub trackers: Vec<TrackerSignature>,
 }
 
+impl<'de> Deserialize<'de> for ResponseResult {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct ResponseResultHelper {
+            endpoint_method: String,
+            endpoint_url: String,
+            status_code: u16,
+            response_time_ms: u64,
+            response_size: usize,
+            response_headers: Vec<(String, String)>,
+            response_body: Vec<u8>,
+            expected_status: Option<u16>,
+            timestamp: Option<String>,
+            checks: Vec<Check>,
+            error: Option<String>,
+            tags: Vec<String>,
+        }
+        let h = ResponseResultHelper::deserialize(deserializer)?;
+        Ok(ResponseResult {
+            endpoint_method: h.endpoint_method,
+            endpoint_url: h.endpoint_url,
+            status_code: h.status_code,
+            response_time_ms: h.response_time_ms,
+            response_size: h.response_size,
+            response_headers: h.response_headers,
+            response_body: h.response_body,
+            expected_status: h.expected_status,
+            timestamp: h.timestamp,
+            checks: h.checks,
+            error: h.error,
+            tags: h.tags,
+            trackers: Vec::new(),
+        })
+    }
+}
+
 /// A single check result (security header, CORS, etc.).
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Check {
     pub name: String,
     pub passed: bool,
@@ -72,7 +114,7 @@ pub struct Check {
     pub message: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Severity {
     Info,
     Warn,

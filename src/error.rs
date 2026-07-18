@@ -34,6 +34,9 @@ pub enum Error {
 
     #[error("session parse error: {0}")]
     SessionParse(String),
+
+    #[error("task error: {0}")]
+    Task(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

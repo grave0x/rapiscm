@@ -138,6 +138,12 @@ mod tests {
             show_tags: false,
             no_trackers: false,
             corp: None,
+            save: false,
+            task_name: None,
+            task_tag: vec![],
+            no_bodies: false,
+            raw: false,
+            task_dir: None,
         }
     }
 

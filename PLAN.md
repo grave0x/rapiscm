@@ -1,319 +1,262 @@
-# rapiscm plan
+# rapiscm — build plan
 
-16 phases split into 4 groups of 4. After each group: quality cycle (3 turns).
+## Status
 
----
-
-## Dependencies (minimal)
-
-Every dep justified by essential functionality. No table-lib, color-lib, progress-bar, uuid, or chrono — replaced with std + manual formatting.
-
-### Runtime
-
-| Crate | Why |
-|-------|-----|
-| `clap` (derive) | CLI arg parsing |
-| `tokio` (full) | Async runtime for concurrent HTTP |
-| `reqwest` (json) | HTTP client |
-| `serde` + `serde_json` | Spec parsing, JSON output |
-| `anyhow` | Error propagation |
-| `thiserror` | Typed error enums |
-| `log` + `env_logger` | Structured debug logging |
-
-### Spec parsing (phases 4, 8)
-
-| Crate | Why |
-|-------|-----|
-| `openapiv3` | OpenAPI 3.0/3.1 Rust types |
-| `serde_yaml` | YAML spec files |
-
-### Dev only
-
-| Crate | Why |
-|-------|-----|
-| `tempfile` | Temp files for spec fixture tests |
-
-### Eliminated (std replacement)
-
-| Planned dep | Replaced with |
-|-------------|---------------|
-| `tabled` | Manual `write!` formatting |
-| `colored` | Raw ANSI escape codes |
-| `indicatif` | Simple `log!` per request |
-| `chrono` | `std::time::SystemTime` |
-| `uuid` | `AtomicU64` counter |
-| `tracing` | `log` + `env_logger` |
-| `url` | `reqwest::Url` (re-exported) |
-| `reqwest mock` | `wiremock` crate or local test server |
-| `criterion` | Skip benchmarks for v1 |
-
-### Dependency graph
-
-```
-rapiscm
-├── clap             (CLI → Config)
-├── tokio            (async runtime)
-├── reqwest          (HTTP scan runner)
-├── serde + serde_json + serde_yaml
-│   └── openapiv3    (spec parse)
-├── log + env_logger (debug output)
-├── thiserror        (error types)
-└── anyhow           (bail, context)
-```
+9 commits, 40+ source files across ~20 subsystems. Core scan pipeline (spec + url) works.  
+Fuzz, session replay, task system, discovery engine, tracker analytics, tag/filter/extract all built.
 
 ---
 
-## Architecture
+## Dependencies (actual)
 
-### Data flow
+### Runtime (13)
 
 ```
-CLI args (clap)
-    │
-    ▼
-  Config
-    │
-    ├─ Target::Spec(path) ──► SpecParser ──┐
-    └─ Target::Url(url)  ──► UrlDiscover ──┤
-                                           ▼
-                                     Vec<Endpoint>
-                                           │
-                                           ▼
-                                     ScanRunner
-                                   (concurrent HTTP)
-                                           │
-                                           ▼
-                                     Vec<ResponseResult>
-                                           │
-                                           ▼
-                                     CheckRunner
-                                    (security, cors, etc.)
-                                           │
-                                           ▼
-                                     Report (Table/Json/Md)
+clap (derive)      → CLI
+tokio (full)       → async runtime
+reqwest (json)     → HTTP client
+serde + serde_json → spec parse + JSON output
+serde_yaml         → YAML spec parse
+openapiv3          → OpenAPI 3.0/3.1 types
+anyhow             → error propagation
+thiserror          → typed errors
+tracing            → structured logging
+tracing-subscriber → env-filter, JSON log format
+regex              → path matching, tracker patterns
+futures-util       → async combinators (fuzz runner)
+toml               → config file parse
 ```
 
-### Module tree
+### Dev
+
+```
+tempfile   → temp dirs in tests
+wiremock   → mock HTTP server in tests
+```
+
+### Feature-gated
+
+| Feature | Deps | Status |
+|---------|------|--------|
+| `browser` | chromiumoxide, fantoccini | Not built |
+
+---
+
+## Module tree (actual)
 
 ```
 src/
-  main.rs               # tokio::main, run scan, print report
-  cli.rs                # clap derive struct + parse()
-  config.rs             # ScanConfig builder from Cli
-  error.rs              # Error enum (thiserror)
-  types.rs              # Endpoint, ResponseResult, Check, etc.
+  main.rs              # dispatch to all 7 subcommands + --save
+  cli.rs               # clap: 7 subcommands, 50+ flags
+  config.rs            # ScanConfig from CLI + env + config.toml
+  types.rs             # Endpoint, ResponseResult, Check, Target, ...
+  error.rs             # Error enum (thiserror)
+  util.rs              # ISO timestamp (no chrono)
 
   scan/
-    mod.rs              # scan entry, dispatch
-    runner.rs           # ScanRunner: concurrent HTTP exec + rate limiter
-    spec.rs             # SpecScanner: spec → endpoints → scan
-    url.rs              # UrlScanner: url → discover → scan
+    mod.rs
+    runner.rs          # ScanRunner: concurrent HTTP + semaphore rate-limit
+    spec.rs            # spec-mode: parse → filter → tag → scan → check
+    url.rs             # url-mode: fetch → extract(crawl) → probe(wordlist) → scan
 
   parser/
     mod.rs
-    spec.rs             # openapiv3 wrapper → Vec<Endpoint>
-    url.rs              # URL normalize, join
+    spec.rs            # openapiv3 → Vec<Endpoint>
+    url.rs             # URL normalize, join, fingerprint
 
   check/
-    mod.rs
-    security.rs         # Security header presence
-    cors.rs             # CORS probe
-    auth.rs             # Missing-auth check
+    mod.rs             # run_checks sync + run_async_checks
+    security.rs        # CSP, HSTS, X-CT-O, X-FO, Cache-Control
+    cors.rs            # OPTIONS + Origin: evil.com
+    auth.rs            # re-request without auth → 200 = no enforcement
+    schema.rs          # status match + valid JSON
 
   report/
+    mod.rs             # format_results dispatcher
+    table.rs           # ANSI-colored terminal
+    json.rs            # serde_json pretty
+    md.rs              # markdown with summary + tables
+    summary.rs         # Stats aggregation
+
+  tag/
+    mod.rs             # tag_endpoint(): rest, v1/v2/v3, admin, graphql,
+                       #   auth-required, open, health, static, deprecated
+
+  filter/
+    mod.rs             # method/path/status/tag include + exclude,
+                       #   endpoint_passes(), result_passes()
+
+  extract/
     mod.rs
-    table.rs            # manual string formatting
-    json.rs             # serde_json formatter
-    summary.rs          # Stats aggregation
+    html.rs            # href, form action extraction
+    js.rs              # string/URL pattern extraction
+    json.rs            # URL values from JSON responses
+    sitemap.rs         # robots.txt, sitemap.xml parsing
+
+  fuzz/
+    mod.rs             # run_fuzz_scan, FuzzOpts
+    runner.rs          # FuzzRunner: path fuzzing loop
+    matcher.rs         # MatchConfig: status/size/regex + baseline + Range type
+    wordlist.rs        # built-in API path wordlist (~100 entries)
+
+  discover/
+    mod.rs             # DiscoverConfig, run_discover, save_report
+    crtsh.rs           # crt.sh Certificate Transparency search
+    rdap.rs            # ARIN RDAP reverse WHOIS
+    asn.rs             # BGPView ASN → IP → reverse DNS
+    search.rs          # Google Custom Search dork-based discovery
+    favicon.rs         # Shodan favicon hash search
+    gaid.rs            # Google Analytics ID pivot (stub)
+
+  analytics/
+    mod.rs             # TrackerAnalysis, run_tracker_analysis
+    detect.rs          # ~200-entry tracker signature DB + matching
+    cookies.rs         # NOT BUILT
+    export.rs          # NOT BUILT
+    profile.rs         # NOT BUILT
+
+  session/
+    mod.rs             # SessionRunner, SessionConfig, dispatch
+    parse.rs           # JSONL line parser → ResponseResult
+    timing.rs          # TimingAnalytics: gaps, bursts, rate-limit events, percentiles
+
+  task/
+    mod.rs             # TaskMeta, ResultSummary, StorageInfo
+    store.rs           # JSON file store: save/load/list/delete/prune
+    index.rs           # index.json management
+    queue.rs           # queue.json management, crash recovery
+    rebuild.rs         # re-run from task.json config
+    diff.rs            # TaskDiff algorithm + classification
+    export.rs          # export to md/sarif/html
+    resume.rs          # checkpoint-based partial re-run
 ```
 
 ---
 
-## Phases
+## What's built (by commit)
 
-### Group 1: Foundation + Spec Scanner (phases 1–4)
-
-**Phase 1 — Project scaffold + CLI** (done)
-- `cargo init --name rapiscm`
-- `Cargo.toml` with minimal deps
-- `cli.rs`: `Cli` struct with `spec`, `url`, `scan` subcommands + all flags
-- `main.rs`: parse CLI, dispatch to mode
-- `.gitignore`, `cargo clippy` clean
-
-**Phase 2 — Types + Config + Errors** (done)
-- `types.rs`: `Target`, `AuthConfig`, `Endpoint`, `ResponseResult`, `Check`, `Severity`, `OutputFormat`
-- `config.rs`: `ScanConfig::from_cli()` with header/auth/output parsing
-- `error.rs`: `Error` enum with thiserror
-- Unit tests for config builders
-
-**Phase 3 — HTTP runner**
-- Write `scan/runner.rs`: `ScanRunner` struct
-  - Takes `Vec<Endpoint>` + config
-  - Spawns `concurrency` workers, feeds endpoints via channel
-  - Rate-limit via tokio sleep or semaphore
-  - Returns `Vec<ResponseResult>`
-  - Handles timeouts, connection errors gracefully
-  - Logs each request with `log!`
-- Verify: unit tests with local test server (e.g. `wiremock` or manual)
-
-**Phase 4 — Spec parser + spec-mode scan**
-- Write `parser/spec.rs`:
-  - Parse JSON/YAML → `openapiv3::OpenAPI`
-  - Walk paths, extract each method
-  - Resolve `$ref`, resolve server URL + variables
-  - Fill path params with example values or `<type>` placeholders
-  - Build `Endpoint` vec
-- Write `scan/spec.rs`:
-  - `SpecScanner`: parse spec → scan runner → results
-- Wire into `main.rs` for `rapiscm spec <file>`
-- Verify: parse a real OpenAPI spec (petstore?), scan against test server
-
-```
-┌─────────────────────────────────────────────────┐
-│         QUALITY CYCLE (3 turns)                  │
-│                                                 │
-│  Turn:                                           │
-│  ┌─────────────────────────────────────────┐    │
-│  │ 1. review         — read all code       │    │
-│  │ 2. test           — run test suite      │    │
-│  │ 3. deep review    — line-by-line audit  │    │
-│  │ 4. test           — rerun, add edge cas │    │
-│  │ 5. optimize       — perf, allocations   │    │
-│  │ 6. refactor       — simplify, extract   │    │
-│  │ 7. test           — regression check    │    │
-│  │ 8. exploit        — find bugs, breaks   │    │
-│  └─────────────────────────────────────────┘    │
-│             ↺ 3 times                            │
-└─────────────────────────────────────────────────┘
-```
+| Commit | Subsystems |
+|--------|-----------|
+| `b9c4281` initial | Foundation, CLI, types, config, errors, scan runner, spec parser, URL parser, security checks, CORS, auth, schema, table/json/md/summary reports, tag engine, extract engine (html/js/json/sitemap), fuzz runner + matcher + wordlist, session replay + parse + timing, task store + index + queue + rebuild + diff + export + resume, init_logging |
+| `13f47e9` | Crawl mode (`--crawl` + `--depth`), recursive BFS discovery |
+| `8d43ab6` | Filter engine (method/path/status/tag includes + excludes) |
+| `a0a9721` | Discovery engine: crtsh, rdap, asn, search, favicon, gaid |
+| `3505757` | Tracker analytics: detect.rs (~200 sigs), wired into pipeline |
+| `b134083` | Session replay refactor, fuzz runner refactor |
+| `01cbf08` | Dead code cleanup, tracker reporting |
+| `dc018b5` | Clippy fixes |
 
 ---
 
-### Group 2: URL Scanner + Checks (phases 5–8)
+## What's NOT built (gaps vs SPEC.md)
 
-**Phase 5 — URL discovery + URL-mode scan**
-- Write `parser/url.rs`: URL normalization, base resolution
-- Write `scan/url.rs`:
-  - Fetch URL, parse HTML for links/forms
-  - Probe common API paths (built-in wordlist)
-  - Build `Endpoint` vec from discovered paths
-  - Run scan runner
-- Wire into `main.rs` for `rapiscm url <url>`
-- Verify: test against a known API, verify endpoint discovery
+### Tier 1 — announced CLI commands, zero code
 
-**Phase 6 — Security header checks**
-- Write `check/security.rs`:
-  - Check each header presence + value pattern
-  - `Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `Cache-Control`
-- Integrate into scan flow: after `ResponseResult` received, run checks
-- Each check → `Check { name, passed, severity, message }`
-- Verify: test against server with known headers, without, and with weak values
+| Feature | SPEC § | LOC | Why |
+|---------|--------|-----|-----|
+| `rapiscm ip <target>` | §2.5 | ~400 | Port scan, service/OS detect, DNS, CIDR |
+| `rapiscm proxy` | §2.6 | ~600 | TLS MITM proxy, dynamic CA, hyper bridge |
+| `rapiscm mitm <iface>` | §2.7 | ~500 | pcap sniffer, BPF, TCP reassembly |
+| `--git` integration | §12.10 | ~50 | GitInfo type exists, capture_git_info unwired |
 
-**Phase 7 — CORS + Auth checks**
-- Write `check/cors.rs`:
-  - Send preflight `OPTIONS` request with `Origin: <attacker-site>`
-  - Check `Access-Control-Allow-Origin` response
-- Write `check/auth.rs`:
-  - Re-send request without auth headers
-  - If 200 → report "auth not required"
-- Verify: test against known CORS configurations, known auth-gated endpoints
+### Tier 2 — CLI flags exist, backend incomplete
 
-**Phase 8 — Schema validation**
-- In spec mode: validate response body against spec schema
-- Use `openapiv3` schema types, validate JSON structure
-- Report schema mismatches as `Check`
-- Verify: test with valid response, invalid response, missing fields
+| Feature | SPEC § | LOC | Blockers |
+|---------|--------|-----|----------|
+| `--resume` | §12.11 | ~80 | resume.rs exists, not wired in cli.rs config |
+| `tasks queue` / `run` / `status` | §1 | ~150 | queue.rs exists, CLI unwired |
+| Fuzz modes (param/method/header/body) | §2.4 | ~300 | Only path mode works |
+| Wordlist modes (sniper/pitchfork/clusterbomb) | §2.4 | ~150 | Only basic wordlist load |
+| `--deep-spec` | §1 | ~300 | Flag exists in CLI, no backend |
+| Expression filters (`tag:rest AND tag:v2`) | §1 | ~100 | Filter engine exists, syntax parser unwired |
+| Script filters (rhai/lua/pipe) | §1 | ~200 | No implementation |
+| `analytics/cookies.rs` | §13.4 | ~80 | Cookie classification stubbed |
+| `analytics/export.rs` | §13.5 | ~100 | Data export detection |
+| `analytics/profile.rs` | §13.6 | ~80 | Device profile reconstruction |
+| Browser feature (chromiumoxide/fantoccini) | §4 | ~300 | Feature-gated deps listed, no code |
+| Ghost mode | §13.1 | ~200 | Flag exists, no logic |
 
-```
-┌─────────────────────────────────────────────────┐
-│         QUALITY CYCLE (3 turns)                  │
-└─────────────────────────────────────────────────┘
-```
+### Tier 3 — spec-lifecycle polish
+
+| Feature | LOC | Why |
+|---------|-----|-----|
+| `--corp` auto-detect + dedup | ~50 | Already works for single target, no batch |
+| Config file validation | ~80 | Missing fields silently default |
+| `--save` auto-naming | ~30 | Uses hardcoded `scan-{timestamp}` prefix |
+| Rate-limit tuning | ~40 | Semaphore-based, no adaptive |
+| Test coverage for session/task | ~200 | ~30 existing tests, gaps in edge cases |
 
 ---
 
-### Group 3: Output + Polish (phases 9–12)
+## Next iteration plan
 
-**Phase 9 — Table formatter**
-- Write `report/table.rs`:
-  - Manual string formatting (no `tabled` crate)
-  - Columns: status, method, path, time, checks summary
-  - Color-code via ANSI codes: 2xx=green, 3xx=blue, 4xx=yellow, 5xx=red
-  - Show check pass/fail per endpoint
-- Wire into main: when `--output table` (default)
-- Verify: run scan, inspect output
+### Wave A — finish what's wired in CLI (shallow work)
 
-**Phase 10 — JSON formatter**
-- Write `report/json.rs`:
-  - `serde_json::to_string_pretty` on full result set
-  - Schema: `{ scan_id, timestamp, target, summary, results: [...] }`
-  - Scan ID: monotonic `AtomicU64`, timestamp: `std::time::SystemTime`
-- Wire into main: when `--output json`
-- Verify: pipe through `jq`, validate structure
+1. `--git` integration (50 LOC) — call `capture_git_info()` in main.rs save path
+2. `analytics/{cookies,export,profile}.rs` (260 LOC) — 3 files from SPEC.md
+3. `--deep-spec` backend (300 LOC) — technical breakdown pass after scan
+4. `--resume` wiring (80 LOC) — config parse + dispatch in main.rs
 
-**Phase 11 — Summary + markdown**
-- Write `report/summary.rs`:
-  - `SummaryStats { total, passed, failed, skipped, p50, p90, p99 }`
-- Markdown output: `report/md.rs`
-  - Headline summary, then tables per endpoint group
-- Wire both into main
-- Verify: inspect output
+### Wave B — CLI commands that exist but need backend
 
-**Phase 12 — UX polish + CI**
-- `--verbose` / `--quiet` flags
-- `--version` flag (automatic from clap)
-- Good error messages for common failures (no spec, bad URL, network down)
-- Set up `.github/workflows/ci.yml`: `cargo check → test → clippy → fmt`
-- Final `cargo clippy` + `cargo fmt` pass
+5. Task queue commands (`tasks queue/run/status`) — 150 LOC
+6. Fuzz modes (param, method, header, body) — 300 LOC
+7. Expression filters — 100 LOC
 
-```
-┌─────────────────────────────────────────────────┐
-│         QUALITY CYCLE (3 turns)                  │
-└─────────────────────────────────────────────────┘
-```
+### Wave C — new major features
+
+8. IP mode (`rapiscm ip`) — 400 LOC
+9. Proxy mode (`rapiscm proxy`) — 600 LOC + 4 new deps
+10. MITM sniffer (`rapiscm mitm`) — 500 LOC + 2 new deps
 
 ---
 
-### Group 4: Session Analysis + Advanced Features (phases 13–16)
-
-**Phase 13 — Session replay mode**
-- Write `src/session/` module:
-  - `mod.rs`: `SessionRunner`, `SessionConfig`, dispatch
-  - `parse.rs`: JSONL line parser, validate `timestamp`/`method`/`url`/`status`, convert to `ResponseResult`
-  - `timing.rs`: `TimingAnalytics` — inter-request gaps, burst detection, rate-limit event detection
-- Wire into `main.rs`: `rapiscm session <file>` dispatches `SessionRunner`
-- Session flow: parse JSONL → build `ResponseResult` vec → run check pipeline (sync+async, skip CORS/auth if no headers) → timing pass (if `--timing`) → report
-- Round-trip: rapiscm JSONL output is valid session input
-- Add `--timing`, `--max-parse-errors`, `--skip-cors`, `--skip-auth` flags
-- JSONL format documented in SPEC.md §15.2
-- Verify: create test JSONL files, run session replay, compare check results with live scan
-
-**Phase 14 — (planned)** Sitemap discovery from robots.txt, sitemap.xml, common paths
-**Phase 15 — (planned)** Authentication replay: session cookie injection, token refresh
-**Phase 16 — (planned)** Enhanced security checks: CORS wildcard detection, info disclosure
-
-## Quality Cycle detail
-
-After each group of 4 phases, run this 3 times:
-
-| Step | What |
-|------|------|
-| 1. Review | Read all files in scope. Note logic errors, missing edge cases, wrong types. |
-| 2. Test | `cargo test --all`. Fix failures. |
-| 3. Deep review | Line-by-line. Check unwraps, error paths, race conditions, resource leaks. |
-| 4. Test | `cargo test --all` + add edge-case tests uncovered in deep review. |
-| 5. Optimize | Profile allocation-heavy paths, `clone()` calls, unnecessary `String` allocations. Replace with `Cow`, references. |
-| 6. Refactor | Extract duplicate logic, shrink large functions, align module boundaries. |
-| 7. Test | `cargo test --all` + `cargo clippy`. Regression check. |
-| 8. Exploit | Deliberately try to break it: empty input, malformed spec, unreachable host, infinite redirects, concurrent hammer. Fix each break. |
-
-Each turn produces either fixes or confidence. After 3 turns, move to next phase group.
-
----
-
-## Summary timeline
+## File map (all 41 source files)
 
 ```
-Phase  1  2  3  4  │QC│  5  6  7  8  │QC│  9 10 11 12  │QC│ 13 14 15 16  │QC│
-Week   1  1  2  2   2W  3  3  4  4   4W  5  5  6  6   6W  7  7  8  8   8W
+src/main.rs           (344)    src/types.rs          (225)
+src/cli.rs            (463)    src/config.rs         (340)
+src/error.rs          ( 40)    src/util.rs           ( 62)
+
+src/scan/mod.rs       ( 10)    src/scan/runner.rs    (225)
+src/scan/spec.rs      ( 76)    src/scan/url.rs       (223)
+
+src/parser/mod.rs     (  2)    src/parser/spec.rs    (293)
+src/parser/url.rs     ( 61)
+
+src/check/mod.rs      ( 51)    src/check/security.rs (114)
+src/check/cors.rs     (112)    src/check/auth.rs     (100)
+src/check/schema.rs   ( 74)
+
+src/report/mod.rs     ( 16)    src/report/table.rs   (166)
+src/report/json.rs    ( 21)    src/report/md.rs      ( 98)
+src/report/summary.rs ( 70)
+
+src/tag/mod.rs        (202)
+
+src/filter/mod.rs     (190)
+
+src/extract/mod.rs    ( 30)    src/extract/html.rs   ( 63)
+src/extract/js.rs     ( 35)    src/extract/json.rs   ( 29)
+src/extract/sitemap.rs(107)
+
+src/fuzz/mod.rs       ( 96)    src/fuzz/runner.rs    (123)
+src/fuzz/matcher.rs   (203)    src/fuzz/wordlist.rs  (120)
+
+src/discover/mod.rs   (205)
+src/discover/crtsh.rs (155)    src/discover/rdap.rs  (179)
+src/discover/asn.rs   (239)    src/discover/search.rs(111)
+src/discover/favicon.rs(102)   src/discover/gaid.rs  ( 22)
+
+src/analytics/mod.rs  (  2)    src/analytics/detect.rs(157)
+
+src/session/mod.rs    (130)    src/session/parse.rs  (131)
+src/session/timing.rs (593)
+
+src/task/mod.rs       (322)    src/task/store.rs     (265)
+src/task/index.rs     (178)    src/task/queue.rs     (207)
+src/task/rebuild.rs   (220)    src/task/diff.rs      (238)
+src/task/export.rs    (227)    src/task/resume.rs    (244)
 ```
+
+(LOC in parens, `wc -l` counts. Total: ~7,600 lines of Rust.)

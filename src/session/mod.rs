@@ -81,6 +81,12 @@ pub async fn run_session(config: &SessionConfig) -> Result<()> {
         show_tags: false,
         trackers: true,
         corp: None,
+        save: false,
+        task_name: None,
+        task_tags: Vec::new(),
+        no_bodies: true,
+        raw: false,
+        task_dir: None,
     };
 
     if !config.skip_cors || !config.skip_auth {

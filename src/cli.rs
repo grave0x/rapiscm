@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(
@@ -76,6 +76,15 @@ pub enum Command {
         global: GlobalArgs,
     },
 
+    /// Manage saved scan tasks (list, show, delete, export, diff, rebuild)
+    Tasks {
+        #[command(subcommand)]
+        action: TasksAction,
+
+        #[command(flatten)]
+        global: GlobalArgs,
+    },
+
     /// Fuzz endpoints with a wordlist
     Fuzz {
         /// Target URL to fuzz
@@ -122,7 +131,54 @@ pub enum Command {
     },
 }
 
-#[derive(clap::Args, Debug, Clone)]
+#[derive(Subcommand, Clone)]
+pub enum TasksAction {
+    /// List saved tasks
+    List,
+    /// Show details for a saved task
+    Show {
+        /// Task ID
+        id: u64,
+    },
+    /// Delete a saved task
+    Delete {
+        /// Task ID
+        id: u64,
+    },
+    /// Prune old tasks, keeping at most N newest
+    Prune {
+        /// Number of tasks to keep
+        keep: usize,
+    },
+    /// Export a task to a file
+    Export {
+        /// Task ID
+        id: u64,
+        /// Export format: md, sarif, html
+        #[arg(long, default_value = "md")]
+        format: String,
+        /// Output file path
+        #[arg(short, long)]
+        output: PathBuf,
+    },
+    /// Diff two saved tasks
+    Diff {
+        /// First task ID
+        old_id: u64,
+        /// Second task ID
+        new_id: u64,
+    },
+    /// Rebuild a task (re-scan failed endpoints)
+    Rebuild {
+        /// Task ID to rebuild
+        id: u64,
+        /// Re-scan ALL endpoints, not just failed ones
+        #[arg(long)]
+        all: bool,
+    },
+}
+
+#[derive(Args, Debug, Clone)]
 pub struct GlobalArgs {
     /// HTTP method to use (e.g. GET, POST). Default: all methods defined in spec, or GET for URL mode
     #[arg(long)]
@@ -255,4 +311,28 @@ pub struct GlobalArgs {
     /// auto-detection from target URL.
     #[arg(long, num_args = 0..=1, default_missing_value = "")]
     pub corp: Option<String>,
+
+    /// Save scan results as a task (implies --task-name default)
+    #[arg(long)]
+    pub save: bool,
+
+    /// Label for the saved task (used with --save)
+    #[arg(long)]
+    pub task_name: Option<String>,
+
+    /// Tags for the saved task (repeatable, e.g. --task-tag ci --task-tag nightly)
+    #[arg(long)]
+    pub task_tag: Vec<String>,
+
+    /// Do NOT store response bodies in the task
+    #[arg(long)]
+    pub no_bodies: bool,
+
+    /// Store raw endpoint files in the task directory
+    #[arg(long)]
+    pub raw: bool,
+
+    /// Task storage directory (default: ~/.local/share/rapiscm/tasks)
+    #[arg(long)]
+    pub task_dir: Option<PathBuf>,
 }
