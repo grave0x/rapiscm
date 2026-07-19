@@ -69,6 +69,7 @@ pub async fn run_session(config: &SessionConfig) -> Result<()> {
         #[cfg(feature = "browser")]
         headed: false,
         crawl_mode: None,
+        allow_cross_origin: false,
         depth: 2,
         ghost: false,
         jitter_pct: 0,

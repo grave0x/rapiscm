@@ -36,6 +36,7 @@ pub struct ScanConfig {
     pub headed: bool,
 
     pub crawl_mode: Option<CrawlMode>,
+    pub allow_cross_origin: bool,
     pub depth: usize,
     pub filter_path: Vec<String>,
     pub exclude_path: Vec<String>,
@@ -130,6 +131,7 @@ impl ScanConfig {
             #[cfg(feature = "browser")]
             headed: global.headed,
             crawl_mode: global.crawl,
+            allow_cross_origin: global.allow_cross_origin,
             depth: global.depth,
             filter_path: global.filter_path.clone(),
             exclude_path: global.exclude_path.clone(),
@@ -233,6 +235,7 @@ impl ScanConfig {
             #[cfg(feature = "browser")]
             headed: global.headed,
             crawl_mode: global.crawl,
+            allow_cross_origin: global.allow_cross_origin,
             depth: global.depth,
             filter_path: global.filter_path,
             exclude_path: global.exclude_path,

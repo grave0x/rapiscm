@@ -106,7 +106,9 @@ async fn crawl(
                 if matches!(crawl_mode, CrawlMode::Js | CrawlMode::Full) {
                     let text = String::from_utf8_lossy(&body);
                     info!("scanning JS bundles from {}", url);
-                    match parser::js_bundle::scan_bundles(client, &text, base).await {
+                    // allow_cross_origin is checked inside run_url_scan's scan_bundles calls
+                    // We do not pass it here because crawl only processes same-origin JS bundles
+                    match parser::js_bundle::scan_bundles(client, &text, base, false).await {
                         Ok(js_eps) => {
                             let js_urls = parser::js_bundle::to_scan_urls(&js_eps, base);
                             for u in js_urls {
@@ -191,13 +193,11 @@ pub async fn run_url_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
                 {
                     let text = String::from_utf8_lossy(&body);
                     info!("scanning JS bundles from base page");
-                    match parser::js_bundle::scan_bundles(&client, &text, &base_url).await {
+                    match parser::js_bundle::scan_bundles(&client, &text, &base_url, config.allow_cross_origin).await {
                         Ok(js_eps) => {
                             let js_urls = parser::js_bundle::to_scan_urls(&js_eps, &base_url);
                             for u in js_urls {
-                                if parser::url::is_api_endpoint(&u)
-                                    && parser::url::same_origin(&u, &base_url)
-                                {
+                                if parser::url::is_api_endpoint(&u) {
                                     discovered.push(u);
                                 }
                             }

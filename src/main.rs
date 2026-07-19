@@ -687,7 +687,7 @@ async fn main() -> anyhow::Result<()> {
         // Extract API endpoints from JS bundles if requested
         if *extract {
             let text = String::from_utf8_lossy(&body);
-            match crate::parser::js_bundle::scan_bundles(&client, &text, &base_url).await {
+            match crate::parser::js_bundle::scan_bundles(&client, &text, &base_url, false).await {
                 Ok(js_eps) => {
                     let urls = crate::parser::js_bundle::to_scan_urls(&js_eps, &base_url);
                     let api_path = output.join("api_endpoints.txt");

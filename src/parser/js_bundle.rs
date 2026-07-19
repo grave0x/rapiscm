@@ -31,6 +31,7 @@ pub async fn scan_bundles(
     client: &reqwest::Client,
     html: &str,
     base_url: &Url,
+    allow_cross_origin: bool,
 ) -> anyhow::Result<Vec<JsApiEndpoint>> {
     let mut all = Vec::new();
 
@@ -38,8 +39,8 @@ pub async fn scan_bundles(
     let bundle_urls = extract_script_srcs(html, base_url);
 
     for bundle_url in &bundle_urls {
-        // SSRF guard: only fetch same-origin bundles
-        if !crate::parser::url::same_origin(bundle_url, base_url) {
+        // SSRF guard: skip cross-origin bundles unless allow_cross_origin is set
+        if !allow_cross_origin && !crate::parser::url::same_origin(bundle_url, base_url) {
             tracing::debug!("skipping cross-origin bundle: {bundle_url}");
             continue;
         }
@@ -171,8 +172,10 @@ fn find_route_config(js: &str) -> Vec<JsApiEndpoint> {
                                 confidence: "high",
                             });
                         }
+                        pos = val_start + end + 1;
+                    } else {
+                        pos = val_start;
                     }
-                    pos = val_start + 1;
                 }
             }
         }
@@ -200,8 +203,10 @@ fn find_fetch_calls(js: &str) -> Vec<JsApiEndpoint> {
                             confidence: "high",
                         });
                     }
+                    pos = val_start + end + 1;
+                } else {
+                    pos = js.len();
                 }
-                pos = val_start + 1;
             }
         }
     }
@@ -239,8 +244,10 @@ fn find_api_client_calls(js: &str) -> Vec<JsApiEndpoint> {
                                 confidence: "high",
                             });
                         }
+                        pos = val_start + end + 1;
+                    } else {
+                        pos = js.len();
                     }
-                    pos = val_start + 1;
                 }
             }
         }
@@ -277,8 +284,12 @@ fn find_template_literals(js: &str) -> Vec<JsApiEndpoint> {
                     }
                 }
             }
+            // Advance past closing backtick
+            pos = template_start + end + 1;
+        } else {
+            // No closing backtick — advance past opening
+            pos = template_start;
         }
-        pos = template_start + 1;
     }
     results
 }
@@ -331,8 +342,12 @@ fn find_concat_patterns(js: &str) -> Vec<JsApiEndpoint> {
                         confidence: "medium",
                     });
                 }
+                // Advance past closing quote (1-byte ASCII)
+                pos = val_start + end + 1;
+            } else {
+                // No closing quote found — advance past opening quote
+                pos = val_start;
             }
-            pos = val_start + 1;
         }
     }
     results
@@ -357,7 +372,7 @@ fn find_graphql_ops(js: &str) -> Vec<JsApiEndpoint> {
                     // Tagged template — find matching backtick
                     if quote == '`' {
                         // Already handled by template literal finder
-                        pos = start + 1;
+                        pos = pos + start + pat.len();
                         continue;
                     }
                     let val_start = pos + start + pat.len();
@@ -394,7 +409,7 @@ fn find_graphql_ops(js: &str) -> Vec<JsApiEndpoint> {
                         }
                     }
                 }
-                pos = start + 1;
+                pos = pos + start + pat.len();
             }
         }
     }
@@ -450,8 +465,12 @@ fn find_import_paths(js: &str) -> Vec<JsApiEndpoint> {
                             confidence: "medium",
                         });
                     }
+                    if let Some(end) = js[val_start..].find(quote) {
+                        pos = val_start + end + 1;
+                    } else {
+                        pos = val_start;
+                    }
                 }
-                pos = val_start + 1;
             }
         }
     }
@@ -483,11 +502,15 @@ fn find_string_arrays(js: &str) -> Vec<JsApiEndpoint> {
                                 confidence: "medium",
                             });
                         }
+                        inner = &inner[s + e + 1..];
+                    } else {
+                        inner = &inner[s..];
                     }
-                    inner = &inner[s + 1..];
                 }
+                pos = arr_start + end + 1;
+            } else {
+                pos = arr_start + 1;
             }
-            pos = arr_start + 1;
         }
     }
     results
@@ -522,8 +545,10 @@ fn find_router_links(js: &str) -> Vec<JsApiEndpoint> {
                                 confidence: "low",
                             });
                         }
+                        pos = val_start + end + 1;
+                    } else {
+                        pos = val_start;
                     }
-                    pos = val_start + 1;
                 }
             }
         }
@@ -572,7 +597,7 @@ fn find_env_urls(js: &str) -> Vec<JsApiEndpoint> {
                         }
                     }
                 }
-                pos = start + 1;
+                pos = pos + start + env_var.len();
             }
         }
     }
@@ -675,7 +700,14 @@ fn looks_like_api_path(s: &str) -> bool {
 
 /// Try to extract HTTP method from context near a path
 fn extract_method_nearby(js: &str, path_pos: usize, _path: &str) -> Option<String> {
-    let before = &js[path_pos.saturating_sub(80)..path_pos];
+    if !js.is_char_boundary(path_pos) {
+        return None;
+    }
+    let start = {
+        let raw = path_pos.saturating_sub(80);
+        if js.is_char_boundary(raw) { raw } else { raw.saturating_add(1) }
+    };
+    let before = &js[start..path_pos];
     for method in &[
         "POST", "post", "GET", "get", "PUT", "put", "PATCH", "patch", "DELETE", "delete",
     ] {

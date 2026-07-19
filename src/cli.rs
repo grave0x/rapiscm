@@ -337,6 +337,10 @@ pub struct GlobalArgs {
     #[arg(long, default_value = "2")]
     pub depth: usize,
 
+    /// Allow scanning JS bundles from cross-origin CDNs (e.g. twimg.com for x.com)
+    #[arg(long, default_value_t = false)]
+    pub allow_cross_origin: bool,
+
     /// Glob path include filter
     #[arg(long)]
     pub filter_path: Vec<String>,
