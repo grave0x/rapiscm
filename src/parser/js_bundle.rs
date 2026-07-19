@@ -38,6 +38,11 @@ pub async fn scan_bundles(
     let bundle_urls = extract_script_srcs(html, base_url);
 
     for bundle_url in &bundle_urls {
+        // SSRF guard: only fetch same-origin bundles
+        if !crate::parser::url::same_origin(bundle_url, base_url) {
+            tracing::debug!("skipping cross-origin bundle: {bundle_url}");
+            continue;
+        }
         tracing::debug!("scanning JS bundle: {bundle_url}");
         match fetch_bundle(client, bundle_url).await {
             Ok(code) => {

@@ -59,6 +59,9 @@ pub struct ScanConfig {
     pub task_dir: Option<PathBuf>,
     pub git: bool,
 
+    // Deep spec flag.
+    pub deep_spec: bool,
+
     // Ghost mode fields.
     pub ghost: bool,
     pub jitter_pct: u32,
@@ -146,6 +149,7 @@ impl ScanConfig {
             raw: global.raw,
             task_dir: global.task_dir.clone(),
             git: global.git,
+            deep_spec: global.deep_spec,
             ghost: global.ghost,
             jitter_pct: global.jitter,
             ua_rotate: global.ua_rotate.clone(),
@@ -247,6 +251,7 @@ impl ScanConfig {
             raw: global.raw,
             task_dir: global.task_dir,
             git: global.git,
+            deep_spec: global.deep_spec,
             ghost: global.ghost,
             jitter_pct: global.jitter,
             ua_rotate: global.ua_rotate,

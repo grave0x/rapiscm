@@ -236,6 +236,7 @@ mod tests {
             show_tags: false,
             trackers: true,
             tracker_report: false,
+            deep_spec: false,
             corp: None,
             save: false,
             task_name: None,

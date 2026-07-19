@@ -4,6 +4,7 @@ mod analytics;
 mod check;
 mod cli;
 mod config;
+mod deepspec;
 mod discover;
 mod error;
 mod extract;
@@ -42,6 +43,33 @@ fn init_logging(level: &str, filters: &[String], format: &str) {
             .with_env_filter(filter)
             .try_init(),
     };
+}
+
+/// SSRF guard: reject private/internal/reserved IP addresses and localhost.
+fn is_safe_url(url_str: &str) -> bool {
+    let parsed = match reqwest::Url::parse(url_str) {
+        Ok(u) => u,
+        Err(_) => return false,
+    };
+    let host = match parsed.host_str() {
+        Some(h) => h,
+        None => return false,
+    };
+    // Reject private, loopback, link-local, and reserved addresses
+    if host == "localhost"
+        || host == "127.0.0.1"
+        || host == "::1"
+        || host == "0.0.0.0"
+        || host.starts_with("169.254.")
+        || host.starts_with("10.")
+        || host.starts_with("192.168.")
+        || host.starts_with("172.16.")
+        || host.starts_with("127.")
+        || host.starts_with("[::1]")
+    {
+        return false;
+    }
+    true
 }
 
 fn get_global(cli: &cli::Cli) -> &cli::GlobalArgs {
@@ -370,12 +398,10 @@ async fn main() -> anyhow::Result<()> {
                     return Ok(());
                 }
                 let queue_path = storage.queue_path();
-                for target in &all_targets {
+                let existing = task::load(&queue_path).len();
+                for (idx, target) in all_targets.iter().enumerate() {
                     let item = task::QueueItem {
-                        queue_id: format!(
-                            "q-{}",
-                            util::now_iso().replace(|c: char| !c.is_alphanumeric(), "-")
-                        ),
+                        queue_id: format!("q-{:04}", existing + idx),
                         command: if target.ends_with(".json")
                             || target.ends_with(".yaml")
                             || target.ends_with(".yml")
@@ -414,13 +440,21 @@ async fn main() -> anyhow::Result<()> {
                         None => break,
                     };
                     println!("Processing: {} ({})", item.target, item.command);
-                    // Run the scan as a simple URL fetch + check
+                    // SSRF guard: reject private/internal IPs before fetching
                     let url = format!(
                         "https://{}",
                         item.target
                             .trim_start_matches("https://")
                             .trim_start_matches("http://")
                     );
+                    if !is_safe_url(&url) {
+                        let err = format!("refused unsafe URL (private/internal): {url}");
+                        task::complete(&queue_path, &item.queue_id, None, Some(err.clone()))
+                            .map_err(e)?;
+                        println!("  ✗ {err}");
+                        processed += 1;
+                        continue;
+                    }
                     let scan_result: Result<Vec<crate::types::ResponseResult>, String> = (async {
                         let client = reqwest::Client::builder()
                             .timeout(std::time::Duration::from_secs(30))
@@ -460,7 +494,7 @@ async fn main() -> anyhow::Result<()> {
                                 task_id,
                                 task_name: format!(
                                     "queue-{}",
-                                    &item.target.replace([':', '/'], "-")
+                                    item.target.replace([':', '/'], "-")
                                 ),
                                 task_tags: vec!["queued".into()],
                                 cli_version: env!("CARGO_PKG_VERSION").into(),
@@ -745,6 +779,15 @@ async fn main() -> anyhow::Result<()> {
             };
             let output = report::format_results(&results, config.output);
             println!("{output}");
+
+            // --deep-spec: produce technical breakdown YAML
+            if config.deep_spec {
+                let spec = deepspec::analyze(&results);
+                match deepspec::to_yaml(&spec) {
+                    Ok(yaml) => println!("\n--- Deep Spec ---\n{yaml}"),
+                    Err(e) => tracing::warn!("Failed to generate deep spec: {e}"),
+                }
+            }
 
             // --report: generate static HTML reports
             if let Some(ref report_name) = g.report {

@@ -406,6 +406,10 @@ pub struct GlobalArgs {
     #[arg(long)]
     pub report: Option<String>,
 
+    /// Produce deep technical breakdown of scan results (YAML)
+    #[arg(long)]
+    pub deep_spec: bool,
+
     /// Ghost mode: stealth scanning with UA rotation, request jitter, header randomization
     #[arg(long)]
     pub ghost: bool,
