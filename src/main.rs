@@ -435,11 +435,7 @@ async fn main() -> anyhow::Result<()> {
                     println!("Recovered {recovered} crashed queue item(s).");
                 }
                 let mut processed = 0;
-                loop {
-                    let item = match task::dequeue(&queue_path) {
-                        Some(i) => i,
-                        None => break,
-                    };
+                while let Some(item) = task::dequeue(&queue_path) {
                     println!("Processing: {} ({})", item.target, item.command);
                     // SSRF guard: reject private/internal IPs before fetching
                     let url = format!(

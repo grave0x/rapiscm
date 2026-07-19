@@ -27,6 +27,7 @@ pub enum CrawlMode {
 }
 
 #[derive(Subcommand, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum Command {
     /// Scan from an OpenAPI spec file (JSON or YAML)
     Spec {

@@ -21,6 +21,7 @@ pub struct FuzzOpts {
     pub fr: Option<String>,
     pub ac: bool,
     pub mode: String,
+    #[allow(dead_code)]
     pub wordlist_mode: String,
     pub keyword: String,
     pub request: Option<PathBuf>,

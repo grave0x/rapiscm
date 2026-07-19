@@ -49,10 +49,10 @@ impl FuzzRunner {
             } else {
                 reqwest::redirect::Policy::none()
             });
-        if let Some(ref proxy_url) = config.proxy {
-            if let Ok(proxy) = reqwest::Proxy::all(proxy_url) {
-                builder = builder.proxy(proxy);
-            }
+        if let Some(ref proxy_url) = config.proxy
+            && let Ok(proxy) = reqwest::Proxy::all(proxy_url)
+        {
+            builder = builder.proxy(proxy);
         }
         let client = builder.build()?;
         Ok(Self {

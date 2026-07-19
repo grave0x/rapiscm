@@ -4,7 +4,6 @@
 //! modified results read from stdout. Works with any language.
 
 use crate::types::{Check, ResponseResult, Severity};
-use std::collections::BTreeMap;
 
 /// A modification to apply to a ResponseResult.
 #[derive(serde::Deserialize)]
@@ -15,8 +14,9 @@ pub struct ScriptMod {
     /// Tags to add.
     #[serde(default)]
     pub add_tags: Vec<String>,
-    /// Custom message.
+    /// Custom message (reserved for future use).
     #[serde(default)]
+    #[allow(dead_code)]
     pub message: Option<String>,
 }
 
@@ -59,13 +59,21 @@ pub fn apply_pipe(script_path: &str, results: &mut [ResponseResult]) -> Result<(
         };
         let input_json = serde_json::to_string(&input).map_err(|e| e.to_string())?;
 
-        let output = std::process::Command::new(script_path)
-            .arg(&r.endpoint_url) // Pass URL as first arg for convenience
+        let mut child = std::process::Command::new(script_path)
+            .arg(&r.endpoint_url)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .spawn()
-            .map_err(|e| format!("failed to spawn {script_path}: {e}"))?
+            .map_err(|e| format!("failed to spawn {script_path}: {e}"))?;
+
+        // Write JSON input to stdin, then close it
+        if let Some(mut stdin) = child.stdin.take() {
+            use std::io::Write;
+            let _ = stdin.write_all(input_json.as_bytes());
+        }
+
+        let output = child
             .wait_with_output()
             .map_err(|e| format!("script error: {e}"))?;
 
