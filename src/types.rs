@@ -231,4 +231,6 @@ pub struct ApiKeys {
     pub google_cx: Option<String>,
     /// Shodan API key.
     pub shodan_api_key: Option<String>,
+    /// GA-ID pivot API key (BuiltWith, SpyOnWeb, etc.).
+    pub ga_api_key: Option<String>,
 }

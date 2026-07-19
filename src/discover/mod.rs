@@ -7,7 +7,7 @@
 //! - 2: RDAP — Reverse WHOIS / org entity search (always on)
 //! - 3: ASN — ASN lookup → IP ranges → reverse DNS (always on)
 //! - 4: Google Search — dork-based domain discovery (API key needed)
-//! - 5: GA-ID — Google Analytics ID pivot (API key needed, stub)
+//! - 5: GA-ID — Google Analytics ID pivot (API key needed, placeholder)
 //! - 6: Shodan — org-name search (API key needed, working)
 
 pub mod asn;
@@ -123,9 +123,9 @@ pub async fn run_discover(config: &DiscoverConfig) -> Result<Vec<DiscoveredDomai
     }
 
     // ── Source 5: GA-ID pivot (gated, stub) ──
-    if config.api_keys.google_api_key.is_some() {
+    if let Some(ga_key) = &config.api_keys.ga_api_key {
         tracing::info!("[discover] GA-ID pivot for \"{org}\"...");
-        match gaid::gaid_pivot(org).await {
+        match gaid::gaid_pivot(org, Some(ga_key)).await {
             Ok(domains) => {
                 for domain in domains {
                     let d = merged

@@ -292,6 +292,10 @@ pub fn load_config() -> ApiKeys {
             .and_then(|k| k.get("shodan_api_key"))
             .and_then(|v| v.as_str())
             .map(String::from),
+        ga_api_key: keys
+            .and_then(|k| k.get("ga_api_key"))
+            .and_then(|v| v.as_str())
+            .map(String::from),
     }
 }
 

@@ -2,21 +2,22 @@
 //!
 //! Finds domains sharing the same Google Analytics tracking ID.
 //! This source requires a third-party API (e.g., BuiltWith, SpyOnWeb) or
-//! a local database. In this v1 implementation, it's a stub that returns
-//! empty results. Real implementation requires external data source.
+//! a local database. Currently returns empty — see ApiKeys.ga_api_key.
 
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 /// Pivot on Google Analytics IDs to discover related domains.
 ///
-/// Stub — returns empty. Real implementation needs:
-/// - A database mapping GA-IDs to domains
-/// - An API to query GA-IDs by org name
-pub async fn gaid_pivot(_org: &str) -> Result<Vec<String>> {
-    // Stub: log and return empty
-    tracing::warn!("GA-ID pivot not implemented (requires external data source)");
-    Err(Error::DiscoveryHttp {
-        src: "gaid",
-        detail: "GA-ID pivot requires external API (stub)".into(),
-    })
+/// Requires an external data source mapping GA-IDs to domains
+/// (e.g., BuiltWith, SpyOnWeb). Without a configured API key,
+/// returns empty without error.
+pub async fn gaid_pivot(_org: &str, _api_key: Option<&str>) -> Result<Vec<String>> {
+    if _api_key.is_none() {
+        tracing::info!("GA-ID pivot skipped (no API key)");
+        return Ok(vec![]);
+    }
+    tracing::warn!(
+        "GA-ID pivot not implemented — needs external API integration (BuiltWith/SpyOnWeb)"
+    );
+    Ok(vec![])
 }
