@@ -655,7 +655,7 @@ async fn main() -> anyhow::Result<()> {
     // ── Capture subcommand: save page as evidence ──
     if let cli::Command::Capture {
         url,
-        output,
+        capture_dir: output,
         screenshot: _,
         html,
         extract,

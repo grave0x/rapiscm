@@ -181,3 +181,129 @@ fn tracker_category_summary(results: &[ResponseResult]) -> BTreeMap<&'static str
     }
     map
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{Check, Severity};
+
+    fn sample_results() -> Vec<ResponseResult> {
+        vec![
+            ResponseResult {
+                endpoint_method: "GET".into(),
+                endpoint_url: "https://api.example.com/users".into(),
+                status_code: 200,
+                response_time_ms: 150,
+                response_size: 1024,
+                response_headers: vec![("content-type".into(), "application/json".into())],
+                response_body: vec![],
+                expected_status: Some(200),
+                timestamp: None,
+                checks: vec![Check {
+                    name: "CSP".into(),
+                    passed: true,
+                    severity: Severity::Info,
+                    message: "CSP present".into(),
+                }],
+                error: None,
+                tags: vec!["api".into(), "v1".into()],
+                trackers: vec![],
+            },
+            ResponseResult {
+                endpoint_method: "POST".into(),
+                endpoint_url: "https://api.example.com/login".into(),
+                status_code: 401,
+                response_time_ms: 300,
+                response_size: 512,
+                response_headers: vec![],
+                response_body: vec![],
+                expected_status: None,
+                timestamp: None,
+                checks: vec![Check {
+                    name: "HSTS".into(),
+                    passed: false,
+                    severity: Severity::Warn,
+                    message: "HSTS missing".into(),
+                }],
+                error: None,
+                tags: vec![],
+                trackers: vec![],
+            },
+        ]
+    }
+
+    #[test]
+    fn test_format_table_contains_methods() {
+        let out = format_table(&sample_results());
+        assert!(out.contains("GET"));
+        assert!(out.contains("POST"));
+        assert!(out.contains("200"));
+        assert!(out.contains("401"));
+    }
+
+    #[test]
+    fn test_format_markdown_contains_headers() {
+        let out = format_markdown_table(&sample_results());
+        assert!(out.contains("Method"));
+        assert!(out.contains("URL"));
+        assert!(out.contains("Status"));
+        assert!(out.contains("api.example.com"));
+    }
+
+    #[test]
+    fn test_format_table_empty() {
+        assert_eq!(format_table(&[]), "");
+    }
+
+    #[test]
+    fn test_format_markdown_empty() {
+        let out = format_markdown_table(&[]);
+        assert!(out.contains("Method"));
+        assert!(out.contains("| Method | URL |"));
+    }
+
+    #[test]
+    fn test_format_time() {
+        assert_eq!(format_time(0), "0ms");
+        assert_eq!(format_time(500), "500ms");
+        assert_eq!(format_time(1500), "1.500s");
+        assert_eq!(format_time(10000), "10.000s");
+    }
+
+    #[test]
+    fn test_status_suffix() {
+        assert_eq!(status_suffix(200), " OK");
+        assert_eq!(status_suffix(404), " Not Found");
+        assert_eq!(status_suffix(500), " Internal Error");
+        assert_eq!(status_suffix(999), "");
+    }
+
+    #[test]
+    fn test_format_checks_empty() {
+        assert_eq!(format_checks(&[]), "");
+    }
+
+    #[test]
+    fn test_format_checks() {
+        let checks = vec![
+            Check { name: "CSP".into(), passed: true, severity: Severity::Info, message: "ok".into() },
+            Check { name: "HSTS".into(), passed: false, severity: Severity::Warn, message: "missing".into() },
+        ];
+        let out = format_checks(&checks);
+        assert!(out.contains("CSP"));
+        assert!(out.contains("HSTS"));
+    }
+
+    #[test]
+    fn test_format_tags() {
+        assert_eq!(format_tags(&vec!["a".into(), "b".into()]), "a,b");
+        assert_eq!(format_tags(&[]), "");
+    }
+
+    #[test]
+    fn test_tracker_category_summary_empty() {
+        let results = sample_results();
+        let summary = tracker_category_summary(&results);
+        assert!(summary.is_empty());
+    }
+}

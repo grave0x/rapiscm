@@ -11,14 +11,25 @@ env:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, 1.80.0]
+        os: [ubuntu-latest]
+        include:
+          - rust: stable
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ matrix.rust }}
           components: clippy, rustfmt
       - run: cargo check
       - run: cargo fmt --check
       - run: cargo clippy -- -D warnings
       - run: cargo test
       - run: cargo check --features browser
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories licenses bans sources

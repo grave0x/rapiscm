@@ -380,3 +380,63 @@ pub async fn run_url_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
 
     Ok(results)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_client_default() {
+        let config = ScanConfig {
+            target: Target::Url(reqwest::Url::parse("https://example.com").unwrap()),
+            method: None,
+            headers: vec![],
+            auth: None,
+            rate_limit: 50,
+            timeout: std::time::Duration::from_secs(30),
+            concurrency: 10,
+            output: crate::types::OutputFormat::Table,
+            follow_redirects: false,
+            insecure: false,
+            paths: vec![],
+            tags: vec![],
+            filter_tag: vec![],
+            exclude_tag: vec![],
+            proxy: None,
+            log_level: "info".into(),
+            log_filter: vec![],
+            log_format: "text".into(),
+            crawl_mode: None,
+            depth: 2,
+            filter_path: vec![],
+            exclude_path: vec![],
+            filter_method: vec![],
+            exclude_method: vec![],
+            filter_status: vec![],
+            exclude_status: vec![],
+            filter: vec![],
+            exclude: vec![],
+            show_tags: false,
+            trackers: true,
+            tracker_report: false,
+            corp: None,
+            save: false,
+            task_name: None,
+            task_tags: vec![],
+            no_bodies: false,
+            raw: false,
+            task_dir: None,
+            git: false,
+            deep_spec: false,
+            ghost: false,
+            jitter_pct: 0,
+            ua_rotate: None,
+            proxy_rotate: vec![],
+            eval_js: None,
+            script: None,
+        };
+        let client = build_client(&config, None).unwrap();
+        // Client builds without panic — verify by checking it's usable.
+        let _ = client.get("https://example.com");
+    }
+}

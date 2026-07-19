@@ -2,6 +2,7 @@
 name = "rapiscm"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
 
 [profile.release]
 strip = true
@@ -15,6 +16,7 @@ browser = ["dep:chromiumoxide", "dep:fantoccini"]
 
 [dependencies]
 anyhow = "1"
+base64 = "0.22"
 chromiumoxide = { version = "0.7", optional = true }
 clap = { version = "4", features = ["derive"] }
 fantoccini = { version = "0.21", optional = true }

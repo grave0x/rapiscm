@@ -2,6 +2,7 @@
 
 pub mod auth;
 pub mod cors;
+pub mod jwt;
 pub mod schema;
 pub mod security;
 pub mod trackers;
@@ -29,6 +30,12 @@ pub fn run_checks(result: &mut ResponseResult) {
 
     let cookie_checks = trackers::check_cookies(&result.response_headers);
     result.checks.extend(cookie_checks);
+
+    // Analyze any JWT tokens found in the response body.
+    let body_str = String::from_utf8_lossy(&result.response_body);
+    for token in jwt::extract_jwt_tokens(&body_str) {
+        result.checks.extend(jwt::analyze_jwt(&token));
+    }
 }
 
 /// Run asynchronous checks (CORS preflight, auth probe) on scan results.

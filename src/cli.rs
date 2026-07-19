@@ -105,8 +105,8 @@ pub enum Command {
         url: String,
 
         /// Output directory for captured page
-        #[arg(short, long, default_value = "capture")]
-        output: PathBuf,
+        #[arg(short = 'O', long = "capture-output", default_value = "capture")]
+        capture_dir: PathBuf,
 
         /// Take a screenshot (requires --browser feature)
         #[arg(long)]
@@ -450,4 +450,299 @@ pub struct GlobalArgs {
     /// Script filter: pipe:./script.py (pipe endpoint JSON via stdin/stdout)
     #[arg(long)]
     pub script: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn test_spec_subcommand() {
+        let cli = Cli::try_parse_from(["rapiscm", "spec", "spec.yaml"]).unwrap();
+        match cli.command {
+            Command::Spec { file, .. } => assert_eq!(file.to_str().unwrap(), "spec.yaml"),
+            _ => panic!("expected Spec command"),
+        }
+    }
+
+    #[test]
+    fn test_url_subcommand() {
+        let cli = Cli::try_parse_from(["rapiscm", "url", "https://api.example.com"]).unwrap();
+        match cli.command {
+            Command::Url { url, .. } => assert_eq!(url, "https://api.example.com"),
+            _ => panic!("expected Url command"),
+        }
+    }
+
+    #[test]
+    fn test_scan_subcommand() {
+        let cli = Cli::try_parse_from(["rapiscm", "scan", "target.json"]).unwrap();
+        match cli.command {
+            Command::Scan { target, .. } => assert_eq!(target, "target.json"),
+            _ => panic!("expected Scan command"),
+        }
+    }
+
+    #[test]
+    fn test_corp_subcommand() {
+        let cli = Cli::try_parse_from(["rapiscm", "corp", "Acme Corp"]).unwrap();
+        match cli.command {
+            Command::Corp { ref name, .. } => assert_eq!(name, "Acme Corp"),
+            _ => panic!("expected Corp command"),
+        }
+    }
+
+    #[test]
+    fn test_fuzz_subcommand() {
+        let cli = Cli::try_parse_from([
+            "rapiscm",
+            "fuzz",
+            "https://example.com/FUZZ",
+            "-w",
+            "common.txt",
+            "-e",
+            "php,asp",
+            "--mc",
+            "200",
+            "--mode",
+            "param",
+        ])
+        .unwrap();
+        match cli.command {
+            Command::Fuzz { target, wordlist, extensions, mc, mode, .. } => {
+                assert_eq!(target, "https://example.com/FUZZ");
+                assert_eq!(wordlist.unwrap(), "common.txt");
+                assert_eq!(extensions, vec!["php", "asp"]);
+                assert_eq!(mc.unwrap(), "200");
+                assert_eq!(mode, "param");
+            }
+            _ => panic!("expected Fuzz command"),
+        }
+    }
+
+    #[test]
+    fn test_tasks_list() {
+        let cli = Cli::try_parse_from(["rapiscm", "tasks", "list"]).unwrap();
+        match cli.command {
+            Command::Tasks { action, .. } => assert!(matches!(action, TasksAction::List)),
+            _ => panic!("expected Tasks command"),
+        }
+    }
+
+    #[test]
+    fn test_tasks_show() {
+        let cli = Cli::try_parse_from(["rapiscm", "tasks", "show", "42"]).unwrap();
+        match cli.command {
+            Command::Tasks { action, .. } => match action {
+                TasksAction::Show { id } => assert_eq!(id, 42),
+                _ => panic!("expected Show action"),
+            },
+            _ => panic!("expected Tasks command"),
+        }
+    }
+
+    #[test]
+    fn test_tasks_delete() {
+        let cli = Cli::try_parse_from(["rapiscm", "tasks", "delete", "7"]).unwrap();
+        match cli.command {
+            Command::Tasks { action, .. } => match action {
+                TasksAction::Delete { id } => assert_eq!(id, 7),
+                _ => panic!("expected Delete action"),
+            },
+            _ => panic!("expected Tasks command"),
+        }
+    }
+
+    #[test]
+    fn test_tasks_prune() {
+        let cli = Cli::try_parse_from(["rapiscm", "tasks", "prune", "10"]).unwrap();
+        match cli.command {
+            Command::Tasks { action, .. } => match action {
+                TasksAction::Prune { keep } => assert_eq!(keep, 10),
+                _ => panic!("expected Prune action"),
+            },
+            _ => panic!("expected Tasks command"),
+        }
+    }
+
+    #[test]
+    fn test_tasks_diff() {
+        let cli = Cli::try_parse_from(["rapiscm", "tasks", "diff", "1", "2"]).unwrap();
+        match cli.command {
+            Command::Tasks { action, .. } => match action {
+                TasksAction::Diff { old_id, new_id } => {
+                    assert_eq!(old_id, 1);
+                    assert_eq!(new_id, 2);
+                }
+                _ => panic!("expected Diff action"),
+            },
+            _ => panic!("expected Tasks command"),
+        }
+    }
+
+    #[test]
+    fn test_capture_subcommand() {
+        let cli = Cli::try_parse_from(["rapiscm", "capture", "https://example.com"]).unwrap();
+        match cli.command {
+            Command::Capture { url, .. } => {
+                assert_eq!(url, "https://example.com");
+            }
+            _ => panic!("expected Capture command"),
+        }
+    }
+
+    #[test]
+    fn test_session_subcommand() {
+        let cli = Cli::try_parse_from(["rapiscm", "session", "session.jsonl", "--timing"])
+            .unwrap();
+        match cli.command {
+            Command::Session { file, timing, .. } => {
+                assert_eq!(file.to_str().unwrap(), "session.jsonl");
+                assert!(timing);
+            }
+            _ => panic!("expected Session command"),
+        }
+    }
+
+    #[test]
+    fn test_global_args_defaults() {
+        let cli = Cli::try_parse_from(["rapiscm", "scan", "https://example.com"]).unwrap();
+        match cli.command {
+            Command::Scan { global, .. } => {
+                assert_eq!(global.rate_limit, 50);
+                assert_eq!(global.timeout, 30);
+                assert_eq!(global.concurrency, 10);
+                assert_eq!(global.output, "table");
+                assert_eq!(global.log_level, "info");
+                assert_eq!(global.jitter, 0);
+                assert!(!global.follow_redirects);
+                assert!(!global.insecure);
+                assert!(!global.ghost);
+                assert!(!global.save);
+                assert!(!global.show_tags);
+                assert!(!global.no_trackers);
+            }
+            _ => panic!("expected Scan command"),
+        }
+    }
+
+    #[test]
+    fn test_global_args_custom() {
+        let cli = Cli::try_parse_from([
+            "rapiscm",
+            "scan",
+            "https://example.com",
+            "--rate-limit",
+            "100",
+            "--timeout",
+            "5",
+            "--concurrency",
+            "20",
+            "-o",
+            "json",
+            "-H",
+            "X-API-Key: secret",
+            "--auth",
+            "bearer:tok",
+            "--proxy",
+            "http://127.0.0.1:8080",
+            "--follow-redirects",
+            "-k",
+            "--ghost",
+            "--jitter",
+            "30",
+            "--save",
+            "--task-name",
+            "nightly-scan",
+            "--show-tags",
+            "--no-trackers",
+            "--log-level",
+            "debug",
+            "--filter-path",
+            "/api/v1",
+            "--filter-method",
+            "GET",
+            "--filter",
+            "tag:rest",
+        ])
+        .unwrap();
+        match cli.command {
+            Command::Scan { global, .. } => {
+                assert_eq!(global.rate_limit, 100);
+                assert_eq!(global.timeout, 5);
+                assert_eq!(global.concurrency, 20);
+                assert_eq!(global.output, "json");
+                assert!(global.follow_redirects);
+                assert!(global.insecure);
+                assert!(global.ghost);
+                assert_eq!(global.jitter, 30);
+                assert!(global.save);
+                assert_eq!(global.task_name.unwrap(), "nightly-scan");
+                assert!(global.show_tags);
+                assert!(global.no_trackers);
+                assert_eq!(global.log_level, "debug");
+                assert_eq!(global.proxy.unwrap(), "http://127.0.0.1:8080");
+                assert_eq!(global.auth.unwrap(), "bearer:tok");
+                assert_eq!(global.headers.len(), 1);
+                assert_eq!(global.filter_path.len(), 1);
+                assert_eq!(global.filter_method.len(), 1);
+                assert_eq!(global.filter.len(), 1);
+            }
+            _ => panic!("expected Scan command"),
+        }
+    }
+
+    #[test]
+    fn test_invalid_output_rejected() {
+        let result = Cli::try_parse_from([
+            "rapiscm",
+            "scan",
+            "https://example.com",
+            "-o",
+            "csv",
+        ]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_unknown_subcommand() {
+        let result = Cli::try_parse_from(["rapiscm", "unknown", "arg"]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_fuzz_default_mode() {
+        let cli =
+            Cli::try_parse_from(["rapiscm", "fuzz", "https://example.com/FUZZ"]).unwrap();
+        match cli.command {
+            Command::Fuzz { mode, wordlist_mode, keyword, .. } => {
+                assert_eq!(mode, "path");
+                assert_eq!(wordlist_mode, "sniper");
+                assert_eq!(keyword, "FUZZ");
+            }
+            _ => panic!("expected Fuzz command"),
+        }
+    }
+
+    #[test]
+    fn test_crawl_mode_values() {
+        let cli = Cli::try_parse_from([
+            "rapiscm",
+            "scan",
+            "https://example.com",
+            "--crawl",
+            "full",
+            "--depth",
+            "3",
+        ])
+        .unwrap();
+        match cli.command {
+            Command::Scan { global, .. } => {
+                assert_eq!(global.crawl, Some(CrawlMode::Full));
+                assert_eq!(global.depth, 3);
+            }
+            _ => panic!("expected Scan command"),
+        }
+    }
 }

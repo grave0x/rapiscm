@@ -151,3 +151,60 @@ fn extract_path(url: &str) -> String {
         url.to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn result(method: &str, url: &str, status: u16) -> ResponseResult {
+        ResponseResult {
+            endpoint_method: method.into(),
+            endpoint_url: url.into(),
+            status_code: status,
+            response_time_ms: 100,
+            response_size: 64,
+            response_headers: vec![],
+            response_body: vec![],
+            expected_status: None,
+            timestamp: None,
+            checks: vec![],
+            error: None,
+            tags: vec![],
+            trackers: vec![],
+        }
+    }
+
+    #[test]
+    fn test_format_doc_empty() {
+        let out = format_doc(&[]);
+        assert!(out.is_empty() || out.contains("## Endpoints"));
+    }
+
+    #[test]
+    fn test_format_doc_contains_method() {
+        let out = format_doc(&[result("GET", "https://api.example.com/users", 200)]);
+        assert!(out.contains("GET"));
+        assert!(out.contains("/users"));
+    }
+
+    #[test]
+    fn test_format_doc_contains_security_checks() {
+        let out = format_doc(&[result("POST", "https://api.example.com/login", 401)]);
+        assert!(out.contains("Security Checks"));
+        assert!(out.contains("Authentication required"));
+    }
+
+    #[test]
+    fn test_extract_path() {
+        assert_eq!(extract_path("https://example.com/api/users"), "/api/users");
+        assert_eq!(
+            extract_path("https://example.com/api?page=1"),
+            "/api?page=1"
+        );
+    }
+
+    #[test]
+    fn test_extract_path_invalid() {
+        assert_eq!(extract_path("not a url"), "not a url");
+    }
+}

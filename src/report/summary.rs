@@ -82,3 +82,77 @@ pub fn format_summary(results: &[ResponseResult]) -> String {
     }
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{Check, Severity};
+
+    fn result() -> ResponseResult {
+        ResponseResult {
+            endpoint_method: "GET".into(),
+            endpoint_url: "https://api.example.com/test".into(),
+            status_code: 200,
+            response_time_ms: 100,
+            response_size: 64,
+            response_headers: vec![],
+            response_body: vec![],
+            expected_status: None,
+            timestamp: None,
+            checks: vec![],
+            error: None,
+            tags: vec![],
+            trackers: vec![],
+        }
+    }
+
+    #[test]
+    fn test_compute_summary_empty() {
+        let s = compute_summary(&[]);
+        assert_eq!(s.total, 0);
+        assert_eq!(s.successful, 0);
+        assert_eq!(s.errors, 0);
+    }
+
+    #[test]
+    fn test_compute_summary_counts() {
+        let mut r = result();
+        r.status_code = 200;
+        let mut r2 = result();
+        r2.status_code = 0; // error
+        let mut r3 = result();
+        r3.status_code = 500;
+        r3.checks = vec![
+            Check { name: "CSP".into(), passed: true, severity: Severity::Info, message: "".into() },
+            Check { name: "HSTS".into(), passed: false, severity: Severity::Warn, message: "".into() },
+        ];
+        let results = vec![r, r2, r3];
+        let s = compute_summary(&results);
+        assert_eq!(s.total, 3);
+        assert_eq!(s.successful, 1);
+        assert_eq!(s.errors, 1);
+        assert_eq!(s.checks_passed, 1);
+        assert_eq!(s.checks_failed, 1);
+    }
+
+    #[test]
+    fn test_format_summary_contains_headings() {
+        let out = format_summary(&[result()]);
+        assert!(out.contains("Scan Summary"));
+        assert!(out.contains("Total endpoints"));
+    }
+
+    #[test]
+    fn test_format_summary_numbers() {
+        let results = vec![result(), result()];
+        let out = format_summary(&results);
+        assert!(out.contains("2"));
+    }
+
+    #[test]
+    fn test_compute_summary_trackers() {
+        let results = vec![result()];
+        let s = compute_summary(&results);
+        assert_eq!(s.trackers_total, 0);
+    }
+}
