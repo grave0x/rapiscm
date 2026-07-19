@@ -164,6 +164,22 @@ pub enum Command {
         #[arg(long)]
         ac: bool,
 
+        /// Fuzzing mode: path (default), param, method, header, body
+        #[arg(long, default_value = "path", value_parser = ["path", "param", "method", "header", "body"])]
+        mode: String,
+
+        /// Wordlist mode: sniper, pitchfork, clusterbomb
+        #[arg(long, default_value = "sniper", value_parser = ["sniper", "pitchfork", "clusterbomb"])]
+        wordlist_mode: String,
+
+        /// Keyword to replace in target URL (default: FUZZ)
+        #[arg(long, default_value = "FUZZ")]
+        keyword: String,
+
+        /// Request body template file for body fuzzing
+        #[arg(long)]
+        request: Option<PathBuf>,
+
         #[command(flatten)]
         global: GlobalArgs,
     },

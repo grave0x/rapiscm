@@ -744,6 +744,10 @@ async fn main() -> anyhow::Result<()> {
             mr,
             fr,
             ac,
+            mode,
+            wordlist_mode,
+            keyword,
+            request,
             ..
         } => {
             let base_url = reqwest::Url::parse(target)
@@ -760,6 +764,10 @@ async fn main() -> anyhow::Result<()> {
                 mr: mr.clone(),
                 fr: fr.clone(),
                 ac: *ac,
+                mode: mode.clone(),
+                wordlist_mode: wordlist_mode.clone(),
+                keyword: keyword.clone(),
+                request: request.clone(),
             };
             fuzz::run_fuzz_scan(&base_url, &opts, &scan_config).await?;
         }

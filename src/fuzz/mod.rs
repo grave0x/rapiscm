@@ -4,6 +4,8 @@ pub mod matcher;
 pub mod runner;
 pub mod wordlist;
 
+use std::path::PathBuf;
+
 use crate::config::ScanConfig;
 use crate::fuzz::matcher::{Baseline, MatchConfig, parse_range_list};
 use crate::fuzz::runner::FuzzRunner;
@@ -18,6 +20,10 @@ pub struct FuzzOpts {
     pub mr: Option<String>,
     pub fr: Option<String>,
     pub ac: bool,
+    pub mode: String,
+    pub wordlist_mode: String,
+    pub keyword: String,
+    pub request: Option<PathBuf>,
 }
 
 /// Run a fuzz scan: load wordlist, build matcher, run fuzzer, print results.
@@ -60,7 +66,28 @@ pub async fn run_fuzz_scan(
         },
     };
     let runner = FuzzRunner::new(scan_config)?;
-    let results = runner.fuzz_paths(base_url, &words, &matcher).await;
+    let keyword = if opts.keyword.is_empty() {
+        "FUZZ"
+    } else {
+        &opts.keyword
+    };
+
+    let results = match opts.mode.as_str() {
+        "param" => runner.fuzz_params(base_url, &words, &matcher).await,
+        "method" => runner.fuzz_methods(base_url, &words, &matcher).await,
+        "header" => {
+            runner
+                .fuzz_headers(base_url, &words, &matcher, keyword)
+                .await
+        }
+        "body" => {
+            runner
+                .fuzz_bodies(base_url, &words, &matcher, keyword, opts.request.as_deref())
+                .await
+        }
+        _ => runner.fuzz_paths(base_url, &words, &matcher).await,
+    };
+
     if !results.is_empty() {
         println!(
             "{}",
