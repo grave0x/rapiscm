@@ -148,6 +148,7 @@ pub fn analyze_cookie_security(value: &str) -> Vec<Check> {
 }
 
 /// Group tracked cookies by purpose for reporting.
+#[cfg_attr(not(test), expect(dead_code))]
 pub fn summarize_cookies(headers: &[(String, String)]) -> Vec<(String, CookiePurpose)> {
     let mut results = Vec::new();
     for (k, v) in headers {

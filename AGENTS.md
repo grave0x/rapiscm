@@ -116,7 +116,7 @@ src/
 install.sh          # installs binary + optional browser deps (--browser)
 .github/workflows/ci.yml  # check, clippy, fmt, test
 .agents/SPEC.md, PLAN.md  # design documents
-tasks/plan.md, todo.md    # implementation plan
+.agents/plan.md, todo.md  # implementation plan
 CHANGELOG.md              # release history
 docs/decisions/ADR-*.md   # architecture decision records
 ```

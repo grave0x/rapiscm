@@ -1,4 +1,6 @@
 /target
 /doc
 /reports
+*~
+.DS_Store
 

@@ -12,7 +12,8 @@
 | [Architecture](architecture.md) | Internal design, data flow, module dependencies |
 | [Contributing](contributing.md) | Coding standards, PR process, testing, release |
 | [Roadmap](roadmap.md) | Short/medium/long-term plans, known gaps |
-| [Security Topics](security-topic.md) | Reference material on 18 security disciplines |
+| [Changelog](../CHANGELOG.md) | Release history |
+| [ADRs](decisions/) | Architecture Decision Records |
 
 ## External links
 
@@ -22,6 +23,10 @@
 - **Releases**: [github.com/grave0x/rapiscm/releases](https://github.com/grave0x/rapiscm/releases)
 - **CI status**: [github.com/grave0x/rapiscm/actions](https://github.com/grave0x/rapiscm/actions)
 - **crates.io**: [crates.io/crates/rapiscm](https://crates.io/crates/rapiscm) *(pending publish)*
+
+## Archives
+
+- **Security-topic reference docs** have been moved to the [`security-topic-archive`](https://github.com/grave0x/rapiscm/tree/security-topic-archive/docs/security-topic) branch — 200+ pages of security tool references (Burp Suite, Metasploit, Mimikatz, etc.)
 
 ## Release notes
 

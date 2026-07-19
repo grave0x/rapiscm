@@ -87,7 +87,7 @@ pub fn detect_exports(body: &str, headers: &[(String, String)]) -> Vec<DataExpor
         if let Some(pos) = lower.find("domain=") {
             let rest = &lower[pos + 7..];
             let domain = rest
-                .split(|c: char| c == ';' || c == ' ' || c == ',')
+                .split([';', ' ', ','])
                 .next()
                 .unwrap_or("");
             if !domain.is_empty()

@@ -8,4 +8,4 @@ mod profile;
 // Re-export detect (the core tracker detection) always.
 pub use detect::*;
 // Cookie, export, and profile functions are available via their modules.
-pub use cookies::{CookiePurpose, analyze_cookie_security, classify_cookie};
+pub use cookies::{analyze_cookie_security, classify_cookie};

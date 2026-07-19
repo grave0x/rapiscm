@@ -14,10 +14,10 @@ Binary at `target/release/rapiscm`.
 |---|---|
 | `cargo build` | Debug build at `target/debug/rapiscm` |
 | `cargo build --release` | Optimised release at `target/release/rapiscm` |
-| `./scripts/build debug` | Same as `cargo build` |
-| `./scripts/build release` | Same as `cargo build --release` |
-| `./scripts/build browser` | Release with `--features browser` |
-| `./scripts/build check` | `cargo check` (fast) |
+| `./scripts/build.sh debug` | Same as `cargo build` |
+| `./scripts/build.sh release` | Same as `cargo build --release` |
+| `./scripts/build.sh browser` | Release with `--features browser` |
+| `./scripts/build.sh check` | `cargo check` (fast) |
 
 ## Feature flags
 
