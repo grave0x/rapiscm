@@ -353,6 +353,187 @@ async fn main() -> anyhow::Result<()> {
                 println!("{output}");
                 return Ok(());
             }
+            TasksAction::Queue { targets, list } => {
+                let mut all_targets = targets.clone();
+                if let Some(list_path) = list {
+                    let content = std::fs::read_to_string(list_path)
+                        .map_err(|e| anyhow::anyhow!("failed to read list file: {e}"))?;
+                    for line in content.lines() {
+                        let trimmed = line.trim();
+                        if !trimmed.is_empty() && !trimmed.starts_with('#') {
+                            all_targets.push(trimmed.to_string());
+                        }
+                    }
+                }
+                if all_targets.is_empty() {
+                    println!("No targets to queue.");
+                    return Ok(());
+                }
+                let queue_path = storage.queue_path();
+                for target in &all_targets {
+                    let item = task::QueueItem {
+                        queue_id: format!(
+                            "q-{}",
+                            util::now_iso().replace(|c: char| !c.is_alphanumeric(), "-")
+                        ),
+                        command: if target.ends_with(".json")
+                            || target.ends_with(".yaml")
+                            || target.ends_with(".yml")
+                        {
+                            "spec".into()
+                        } else {
+                            "url".into()
+                        },
+                        target: target.clone(),
+                        config_snapshot: serde_json::json!({}),
+                        status: task::QueueItemStatus::Pending,
+                        created_at: util::now_iso(),
+                        started_at: None,
+                        completed_at: None,
+                        task_id: None,
+                        retries: 0,
+                        error: None,
+                    };
+                    task::enqueue(&queue_path, item).map_err(e)?;
+                }
+                println!("Queued {} target(s) for scanning.", all_targets.len());
+                return Ok(());
+            }
+            TasksAction::Run {
+                parallel: _concurrency,
+            } => {
+                let queue_path = storage.queue_path();
+                let recovered = task::recover_crashed(&queue_path).map_err(e)?;
+                if recovered > 0 {
+                    println!("Recovered {recovered} crashed queue item(s).");
+                }
+                let mut processed = 0;
+                loop {
+                    let item = match task::dequeue(&queue_path) {
+                        Some(i) => i,
+                        None => break,
+                    };
+                    println!("Processing: {} ({})", item.target, item.command);
+                    // Run the scan as a simple URL fetch + check
+                    let url = format!(
+                        "https://{}",
+                        item.target
+                            .trim_start_matches("https://")
+                            .trim_start_matches("http://")
+                    );
+                    let scan_result: Result<Vec<crate::types::ResponseResult>, String> = (async {
+                        let client = reqwest::Client::builder()
+                            .timeout(std::time::Duration::from_secs(30))
+                            .build()
+                            .map_err(|e| e.to_string())?;
+                        let resp = client.get(&url).send().await.map_err(|e| e.to_string())?;
+                        let status = resp.status().as_u16();
+                        let headers: Vec<(String, String)> = resp
+                            .headers()
+                            .iter()
+                            .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
+                            .collect();
+                        let body = resp.bytes().await.unwrap_or_default().to_vec();
+                        let elapsed = 0u64;
+                        Ok(vec![crate::types::ResponseResult {
+                            endpoint_method: "GET".into(),
+                            endpoint_url: url.clone(),
+                            status_code: status,
+                            response_time_ms: elapsed,
+                            response_size: body.len(),
+                            response_headers: headers,
+                            response_body: body,
+                            expected_status: None,
+                            timestamp: Some(util::now_iso()),
+                            checks: vec![],
+                            error: None,
+                            tags: vec![],
+                            trackers: vec![],
+                        }])
+                    })
+                    .await;
+                    match scan_result {
+                        Ok(results) => {
+                            let summary = task::summarize(&results);
+                            let task_id = task::index::next_id(&storage.index_path());
+                            let meta = task::TaskMeta {
+                                task_id,
+                                task_name: format!(
+                                    "queue-{}",
+                                    &item.target.replace([':', '/'], "-")
+                                ),
+                                task_tags: vec!["queued".into()],
+                                cli_version: env!("CARGO_PKG_VERSION").into(),
+                                created_at: util::now_iso(),
+                                duration_seconds: 0.0,
+                                command: item.command.clone(),
+                                target: item.target.clone(),
+                                config: serde_json::json!({}),
+                                git: None,
+                                endpoint_count: results.len(),
+                                result_summary: summary,
+                                storage: task::StorageInfo {
+                                    has_bodies: true,
+                                    has_raw: false,
+                                    results_size_bytes: 0,
+                                },
+                                exit_code: 0,
+                            };
+                            storage.save(&meta, &results, false, false).map_err(e)?;
+                            task::complete(&queue_path, &item.queue_id, Some(task_id), None)
+                                .map_err(e)?;
+                            println!("  ✓ Completed as task {task_id}");
+                        }
+                        Err(err) => {
+                            task::complete(&queue_path, &item.queue_id, None, Some(err.clone()))
+                                .map_err(e)?;
+                            println!("  ✗ Failed: {err}");
+                        }
+                    }
+                    processed += 1;
+                }
+                println!("Processed {processed} queue item(s).");
+                return Ok(());
+            }
+            TasksAction::Status => {
+                let queue_path = storage.queue_path();
+                let items = task::load(&queue_path);
+                let pending = items
+                    .iter()
+                    .filter(|i| i.status == task::QueueItemStatus::Pending)
+                    .count();
+                let running = items
+                    .iter()
+                    .filter(|i| i.status == task::QueueItemStatus::Running)
+                    .count();
+                let completed = items
+                    .iter()
+                    .filter(|i| i.status == task::QueueItemStatus::Completed)
+                    .count();
+                let failed = items
+                    .iter()
+                    .filter(|i| i.status == task::QueueItemStatus::Failed)
+                    .count();
+                println!("Queue Status:");
+                println!("  Pending:   {pending}");
+                println!("  Running:   {running}");
+                println!("  Completed: {completed}");
+                println!("  Failed:    {failed}");
+                println!("  Total:     {}", items.len());
+                if !items.is_empty() {
+                    println!("\nItems:");
+                    for item in &items {
+                        let status_str = match item.status {
+                            task::QueueItemStatus::Pending => "pending",
+                            task::QueueItemStatus::Running => "running",
+                            task::QueueItemStatus::Completed => "completed",
+                            task::QueueItemStatus::Failed => "failed",
+                        };
+                        println!("  [{status_str:>9}] {} — {}", item.target, item.command);
+                    }
+                }
+                return Ok(());
+            }
         }
     }
 

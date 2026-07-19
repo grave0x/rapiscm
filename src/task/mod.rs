@@ -8,10 +8,11 @@ pub mod rebuild;
 pub mod resume;
 pub mod store;
 
-#[expect(unused_imports)]
+#[allow(unused_imports)]
 pub use diff::{DiffKind, TaskDiff, diff_tasks};
-#[expect(unused_imports)]
+#[allow(unused_imports)]
 pub use export::ExportFormat;
+pub use queue::*;
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -122,7 +123,6 @@ impl TaskStorage {
     }
 
     /// Path to the queue file.
-    #[expect(dead_code)]
     pub fn queue_path(&self) -> PathBuf {
         self.base_dir.join("queued.json")
     }

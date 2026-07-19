@@ -214,6 +214,22 @@ pub enum TasksAction {
         #[arg(long)]
         all: bool,
     },
+    /// Add targets to the scan queue
+    Queue {
+        /// Targets to queue (spec files, URLs)
+        targets: Vec<String>,
+        /// Read targets from a file (one per line)
+        #[arg(long)]
+        list: Option<PathBuf>,
+    },
+    /// Process items in the scan queue
+    Run {
+        /// Number of items to process concurrently
+        #[arg(long, default_value = "1")]
+        parallel: usize,
+    },
+    /// Show queue status (pending, running, completed, failed)
+    Status,
 }
 
 #[derive(Args, Debug, Clone)]

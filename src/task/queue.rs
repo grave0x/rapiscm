@@ -1,7 +1,6 @@
 //! Queue file management — `queued.json` in the tasks root.
 //!
 //! Supports batch / async scan queuing and crash recovery.
-#![expect(dead_code)]
 
 use std::fs;
 use std::path::Path;

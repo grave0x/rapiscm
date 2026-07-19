@@ -86,10 +86,7 @@ pub fn detect_exports(body: &str, headers: &[(String, String)]) -> Vec<DataExpor
         let lower = value.to_lowercase();
         if let Some(pos) = lower.find("domain=") {
             let rest = &lower[pos + 7..];
-            let domain = rest
-                .split([';', ' ', ','])
-                .next()
-                .unwrap_or("");
+            let domain = rest.split([';', ' ', ',']).next().unwrap_or("");
             if !domain.is_empty()
                 && !domain.contains(".example.com")
                 && !domain.contains(".localhost")
