@@ -67,12 +67,41 @@ pub struct ScanConfig {
     pub eval_js: Option<String>,
 }
 
+/// Validate config values and log warnings for suspicious settings.
+fn validate_config(rate_limit: u64, timeout: u64, concurrency: usize, jitter_pct: u32) {
+    if rate_limit > 1000 {
+        tracing::warn!(
+            "rate_limit={rate_limit} is very high — may trigger rate limiting on target"
+        );
+    }
+    if rate_limit == 0 {
+        tracing::warn!("rate_limit=0 means unlimited requests — use with caution");
+    }
+    if timeout < 1 {
+        tracing::warn!("timeout={timeout}s is too low — requests may fail");
+    }
+    if concurrency > 100 {
+        tracing::warn!("concurrency={concurrency} is very high — may overwhelm target");
+    }
+    if jitter_pct > 80 {
+        tracing::warn!(
+            "jitter={jitter_pct}% is very high — request timing will vary significantly"
+        );
+    }
+}
+
 impl ScanConfig {
     /// Build a ScanConfig from GlobalArgs + a Target (for fuzz mode).
     pub fn from_cli_global(global: &crate::cli::GlobalArgs, target: Target) -> Result<Self> {
         let headers = parse_headers(&global.headers)?;
         let auth = parse_auth(global.auth.as_deref())?;
         let output = parse_output(&global.output)?;
+        validate_config(
+            global.rate_limit,
+            global.timeout,
+            global.concurrency,
+            global.jitter,
+        );
         Ok(ScanConfig {
             target,
             method: global.method.clone(),

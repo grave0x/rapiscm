@@ -764,11 +764,20 @@ async fn main() -> anyhow::Result<()> {
                     types::Target::Url(_) => "url",
                 };
                 let summary = task::summarize(&results);
+                // Auto-name: {target-host}-{timestamp} or custom --task-name
+                let auto_name = match &config.target {
+                    types::Target::Url(u) => {
+                        let host = u.host_str().unwrap_or("unknown");
+                        format!("{host}-{}", &now[..19])
+                    }
+                    types::Target::Spec(p) => {
+                        let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("spec");
+                        format!("{stem}-{}", &now[..19])
+                    }
+                };
                 let meta = task::TaskMeta {
                     task_id: id,
-                    task_name: config
-                        .task_name
-                        .unwrap_or_else(|| format!("scan-{}", &now[..19])),
+                    task_name: config.task_name.unwrap_or(auto_name),
                     task_tags: config.task_tags.clone(),
                     cli_version: env!("CARGO_PKG_VERSION").to_string(),
                     created_at: now,
