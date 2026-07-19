@@ -445,4 +445,8 @@ pub struct GlobalArgs {
     /// Proxy rotation: comma-separated proxy URLs (overrides --proxy)
     #[arg(long, value_delimiter = ',')]
     pub proxy_rotate: Vec<String>,
+
+    /// Script filter: pipe:./script.py (pipe endpoint JSON via stdin/stdout)
+    #[arg(long)]
+    pub script: Option<String>,
 }

@@ -75,6 +75,7 @@ pub async fn run_session(config: &SessionConfig) -> Result<()> {
         ua_rotate: None,
         proxy_rotate: vec![],
         eval_js: None,
+        script: None,
         filter_path: Vec::new(),
         exclude_path: Vec::new(),
         filter_method: Vec::new(),

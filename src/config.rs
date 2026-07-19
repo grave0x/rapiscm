@@ -68,6 +68,7 @@ pub struct ScanConfig {
     pub ua_rotate: Option<String>,
     pub proxy_rotate: Vec<String>,
     pub eval_js: Option<String>,
+    pub script: Option<String>,
 }
 
 /// Validate config values and log warnings for suspicious settings.
@@ -155,6 +156,7 @@ impl ScanConfig {
             ua_rotate: global.ua_rotate.clone(),
             proxy_rotate: global.proxy_rotate.clone(),
             eval_js: global.eval.clone(),
+            script: global.script.clone(),
         })
     }
 
@@ -257,6 +259,7 @@ impl ScanConfig {
             ua_rotate: global.ua_rotate,
             proxy_rotate: global.proxy_rotate,
             eval_js: global.eval,
+            script: global.script,
         })
     }
 }

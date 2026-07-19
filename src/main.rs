@@ -14,6 +14,7 @@ mod ghost;
 mod parser;
 mod report;
 mod scan;
+mod script;
 mod session;
 mod tag;
 mod task;
@@ -781,11 +782,22 @@ async fn main() -> anyhow::Result<()> {
             let config = config::ScanConfig::from_cli(cli::Cli {
                 command: cmd.clone(),
             })?;
-            let results = match &config.target {
+            let mut results: Vec<crate::types::ResponseResult> = match &config.target {
                 types::Target::Spec(_) => scan::spec::run_spec_scan(&config).await?,
                 types::Target::Url(_) => scan::url::run_url_scan(&config).await?,
             };
-            let output = report::format_results(&results, config.output);
+            let output_format = config.output;
+            // --script: apply pipe script filter to results
+            if let Some(ref script_cmd) = g.script {
+                if let Some(stripped) = script_cmd.strip_prefix("pipe:") {
+                    if let Err(e) = script::apply_pipe(stripped, &mut results) {
+                        tracing::warn!("script filter failed: {e}");
+                    }
+                } else {
+                    tracing::warn!("unknown script scheme '{script_cmd}'. Use pipe:./script.py");
+                }
+            }
+            let output = report::format_results(&results, output_format);
             println!("{output}");
 
             // --deep-spec: produce technical breakdown YAML

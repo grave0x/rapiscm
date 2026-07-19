@@ -250,6 +250,7 @@ mod tests {
             ua_rotate: None,
             proxy_rotate: vec![],
             eval_js: None,
+            script: None,
         };
 
         let runner = ScanRunner::new(&config).unwrap();

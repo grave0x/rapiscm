@@ -37,6 +37,7 @@ fn base_config(port: u16) -> ScanConfig {
         ua_rotate: None,
         proxy_rotate: vec![],
         eval_js: None,
+        script: None,
         filter_path: vec![],
         exclude_path: vec![],
         filter_method: vec![],

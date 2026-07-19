@@ -156,6 +156,7 @@ mod tests {
             ua_rotate: None,
             jitter: 0,
             proxy_rotate: vec![],
+            script: None,
         }
     }
 
