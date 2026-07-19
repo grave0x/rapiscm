@@ -8,7 +8,7 @@
 //! - 3: ASN — ASN lookup → IP ranges → reverse DNS (always on)
 //! - 4: Google Search — dork-based domain discovery (API key needed)
 //! - 5: GA-ID — Google Analytics ID pivot (API key needed, stub)
-//! - 6: Shodan — favicon hash search (API key needed, stub)
+//! - 6: Shodan — org-name search (API key needed, working)
 
 pub mod asn;
 pub mod crtsh;

@@ -1,14 +1,12 @@
-//! Shodan favicon hash search.
+//! Shodan org-name search (favicon hash search planned).
 //!
-//! Searches Shodan for domains/IPs sharing the same favicon hash as the
-//! target organization. Requires a Shodan API key in config.toml.
+//! Searches Shodan for hosts matching an organization name, then extracts
+//! associated domains. Requires a Shodan API key in config.toml.
 //!
-//! This source works best with a two-pass approach:
+//! A future enhancement would implement the two-pass favicon approach:
 //!   1. Find known domains for the org
 //!   2. Get their favicon hashes
 //!   3. Search Shodan for other hosts with matching hashes
-//!
-//! For v1, this is a simplified stub that queries Shodan for the org name.
 
 use crate::error::{Error, Result};
 use serde::Deserialize;
