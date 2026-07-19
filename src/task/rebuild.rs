@@ -15,7 +15,7 @@ use super::TaskId;
 /// 2. Re-scan failed (status_code == 0) endpoints.
 /// 3. Merge fresh results into the stored set.
 /// 4. Save as a new task (new ID).
-#[expect(dead_code)]
+#[allow(dead_code)]
 pub async fn rebuild(
     storage: &TaskStorage,
     orig_id: TaskId,

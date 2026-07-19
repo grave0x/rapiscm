@@ -49,8 +49,11 @@
 //! | [`parser`] | OpenAPI spec parsing and URL analysis |
 //! | [`report`] | Output formatting (table, JSON, markdown) |
 //! | [`scan`] | Scan orchestrators (spec, URL, browser, session) |
+//! | [`session`] | Session replay — parse and re-check recorded HTTP sessions |
 //! | [`tag`] | Auto-tagging of endpoints and responses |
+//! | [`task`] | Scan result persistence, diff, export, resume |
 //! | [`types`] | Core data types (Endpoint, ResponseResult, Check, …) |
+//! | [`util`] | Utility functions (git info, ISO formatting) |
 
 pub mod analytics;
 pub mod check;
@@ -65,5 +68,8 @@ pub mod ghost;
 pub mod parser;
 pub mod report;
 pub mod scan;
+pub mod session;
 pub mod tag;
+pub mod task;
 pub mod types;
+pub mod util;

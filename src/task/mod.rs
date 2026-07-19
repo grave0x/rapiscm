@@ -178,7 +178,7 @@ pub fn summarize(results: &[crate::types::ResponseResult]) -> ResultSummary {
 }
 
 /// Format a duration in seconds to human-friendly string.
-#[cfg_attr(not(test), expect(dead_code))]
+#[allow(dead_code)]
 pub fn fmt_duration(secs: f64) -> String {
     if secs < 60.0 {
         format!("{secs:.1}s")
