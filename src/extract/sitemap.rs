@@ -1,3 +1,5 @@
+//! URL extraction from robots.txt and sitemap XML.
+
 /// Parse robots.txt and sitemap.xml for URLs.
 use reqwest::Url;
 

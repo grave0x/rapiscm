@@ -2,7 +2,7 @@
 
 ## Current status — v0.1.0
 
-Working core pipeline with spec-mode and URL-mode scans. Task system, fuzzing, session replay, and corporate domain discovery implemented. Output in table/JSON/Markdown. Browser discovery feature-gated.
+Working core pipeline with spec-mode and URL-mode scans. Task system, fuzzing, session replay, ghost mode, JS bundle scanning, and corporate domain discovery implemented. Output in table/JSON/Markdown/Doc formats. Browser discovery feature-gated.
 
 ## Short-term (next)
 
@@ -12,7 +12,10 @@ Working core pipeline with spec-mode and URL-mode scans. Task system, fuzzing, s
 - [ ] **Docker image** — multi-arch Docker image for CI
 - [ ] **OpenAPI 3.1 support** — full 3.1 schema parsing
 - [ ] **SARIF export** — currently partial; complete SARIF 2.1 spec compliance
-- [ ] **HTML report** — standalone HTML report with sortable tables, charts
+- [ ] **`rapiscm ip` mode** — TCP port scanning, service detection, OS fingerprint
+- [ ] **`--deep-spec` backend** — technical breakdown YAML output
+- [ ] **`tasks queue/run/status`** — batch scan queue with crash recovery
+- [ ] **Fuzz mode expansion** — param/method/header/body modes + wordlist modes
 
 ## Medium-term
 
@@ -59,3 +62,11 @@ Working core pipeline with spec-mode and URL-mode scans. Task system, fuzzing, s
 - [x] Expression-based filter syntax
 - [x] Git context capture for tasks
 - [x] Tag endpoint filtering (include/exclude by OpenAPI tags)
+- [x] Ghost mode (UA rotation, jitter, header randomization, proxy rotation)
+- [x] JS bundle scanning (download + parse SPA bundles for API routes)
+- [x] Browser JS eval (--eval for dynamic route extraction)
+- [x] Page capture (rapiscm capture — HTML + screenshot + JS endpoints)
+- [x] Structured docs output (-o doc for llm-api-style markdown)
+- [x] Report HTML site (--report generates static HTML report site)
+- [x] Cookie security analysis (Secure/HttpOnly/SameSite/expiry detection)
+- [x] Expression filter syntax (tag:/status:/path:/method: with AND logic)

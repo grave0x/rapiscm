@@ -1,3 +1,5 @@
+//! URL analysis: wordlist matching, API endpoint detection, origin checking.
+
 /// URL pattern matching and wordlist for API endpoint discovery.
 use reqwest::Url;
 

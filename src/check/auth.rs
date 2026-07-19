@@ -1,3 +1,5 @@
+//! Authentication requirement detection (401/403 analysis).
+
 use crate::types::{AuthConfig, Check, Severity};
 
 /// Check whether an endpoint enforces authentication by re-requesting it

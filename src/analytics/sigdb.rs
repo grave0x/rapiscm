@@ -1,4 +1,9 @@
-/// Embedded tracker signature database (~200 entries).
+/// Embedded signature database for known trackers and analytics services.
+///
+/// Contains ~200 entries covering analytics, advertising, CDN, hosting, social,
+/// and utility services. This module is private — access entries via
+/// [`crate::analytics::iter`].
+// Private — use `analytics::iter()` to access entries.
 static DATABASE: &[TrackerSignature] = &[
     // ── Analytics ──
     TrackerSignature { name: "Google Analytics 4", category: TrackerCategory::Analytics, company: "Google", domains: &["googletagmanager.com", "google-analytics.com", "analytics.google.com"], script_patterns: &["gtag(", "gtag.config", "G-"], cookie_names: &["_ga", "_gid", "_gat"], purpose: "Page views, events, user tracking" },

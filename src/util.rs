@@ -146,9 +146,7 @@ mod tests {
     fn test_days_to_date() {
         // Unix epoch = 1970-01-01
         assert_eq!(days_to_date(0), (1970, 1, 1));
-        // 2025-01-01
-        let days_2025 = (2025 - 1970) * 365 + 14; // approx
-        let d = now_iso();
         // just check it doesn't panic
+        let _d = now_iso();
     }
 }

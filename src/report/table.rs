@@ -1,3 +1,5 @@
+//! Terminal table output (plain text and markdown).
+
 use crate::types::ResponseResult;
 use std::collections::BTreeMap;
 

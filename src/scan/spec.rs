@@ -1,3 +1,5 @@
+//! Spec-driven scan: parse spec, discover endpoints, send requests.
+
 use tracing::info;
 
 use crate::check;

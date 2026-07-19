@@ -1,3 +1,5 @@
+//! Fuzzing engine: wordlist-driven endpoint discovery.
+
 pub mod matcher;
 pub mod runner;
 pub mod wordlist;

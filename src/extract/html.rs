@@ -1,3 +1,5 @@
+//! URL extraction from HTML content (links, forms, resources).
+
 /// Extract URLs from HTML content by scanning href, src, action attributes.
 /// Originally in parser/url.rs, moved here for Phase 2 restructure.
 use reqwest::Url;

@@ -4,7 +4,7 @@
 //! then performs reverse DNS lookups to discover domains.
 //!
 //! Uses the BGPView API (free, no auth) for ASN data:
-//!   GET https://api.bgpview.io/asn/{asn}/prefixes
+//!   <https://api.bgpview.io/asn/{asn}/prefixes>
 
 use crate::error::{Error, Result};
 use serde::Deserialize;

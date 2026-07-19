@@ -1,3 +1,5 @@
+//! Core data types: Endpoint, ResponseResult, Check, OutputFormat.
+
 use std::fmt;
 use std::path::PathBuf;
 
@@ -25,20 +27,28 @@ impl fmt::Display for Target {
 /// Authentication configuration parsed from `--auth`.
 #[derive(Debug, Clone)]
 pub enum AuthConfig {
+    /// Bearer token authentication (adds `Authorization: Bearer <token>`).
     Bearer(String),
+    /// HTTP Basic authentication (base64-encoded username:password).
     Basic { username: String, password: String },
+    /// Custom header-based authentication.
     Header { name: String, value: String },
 }
 
 /// A single API endpoint to hit.
 #[derive(Debug, Clone)]
 pub struct Endpoint {
+    /// HTTP method (GET, POST, PUT, etc).
     pub method: reqwest::Method,
+    /// Target URL.
     pub url: reqwest::Url,
+    /// Additional headers to send with the request.
     pub headers: Vec<(String, String)>,
+    /// Request body (for POST/PUT/PATCH).
     pub body: Option<serde_json::Value>,
     /// Expected success status from the spec, if known.
     pub expected_status: Option<u16>,
+    /// Tags classifying this endpoint (method, path category, etc).
     pub tags: Vec<String>,
 }
 
@@ -48,19 +58,29 @@ pub struct Endpoint {
 /// (tracker signatures use `&'static str` fields from a static database).
 #[derive(Debug, Clone, Serialize)]
 pub struct ResponseResult {
+    /// HTTP method used.
     pub endpoint_method: String,
+    /// URL that was requested.
     pub endpoint_url: String,
+    /// HTTP response status code.
     pub status_code: u16,
+    /// Round-trip time in milliseconds.
     pub response_time_ms: u64,
+    /// Response body size in bytes.
     pub response_size: usize,
+    /// Response headers as (name, value) pairs.
     pub response_headers: Vec<(String, String)>,
+    /// Raw response body bytes.
     pub response_body: Vec<u8>,
     /// Expected status from spec, if known.
     pub expected_status: Option<u16>,
     /// ISO-8601 timestamp, if recorded.
     pub timestamp: Option<String>,
+    /// Security and compliance checks applied to this response.
     pub checks: Vec<Check>,
+    /// Error message if the request failed entirely.
     pub error: Option<String>,
+    /// Tags classifying this response.
     pub tags: Vec<String>,
     /// Trackers / analytics detected in the response.
     pub trackers: Vec<TrackerSignature>,
@@ -108,16 +128,24 @@ impl<'de> Deserialize<'de> for ResponseResult {
 /// A single check result (security header, CORS, etc.).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Check {
+    /// Check name (e.g. "HSTS", "CSP", "CORS").
     pub name: String,
+    /// Whether the check passed.
     pub passed: bool,
+    /// Severity level if the check failed.
     pub severity: Severity,
+    /// Human-readable description of the result.
     pub message: String,
 }
 
+/// Severity level for check results.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Severity {
+    /// Informational — no action required.
     Info,
+    /// Warning — potential issue worth reviewing.
     Warn,
+    /// Critical — security or compliance issue.
     Critical,
 }
 
@@ -162,16 +190,23 @@ pub fn base64_encode(input: &str) -> String {
     result
 }
 
+/// Output format for scan results.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutputFormat {
+    /// Terminal table with colored status codes.
     Table,
+    /// Pretty-printed JSON.
     Json,
+    /// Markdown table.
     Markdown,
+    /// Structured API documentation (llm-api style).
+    Doc,
 }
 
 /// A domain discovered for a company/organization.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct DiscoveredDomain {
+    /// Discovered domain name.
     pub domain: String,
     /// Which discovery sources found this domain.
     pub sources: Vec<String>,
@@ -190,7 +225,10 @@ pub struct DiscoveredDomain {
 /// API keys for gated discovery sources, loaded from config file.
 #[derive(Debug, Clone, Default)]
 pub struct ApiKeys {
+    /// Google Custom Search API key.
     pub google_api_key: Option<String>,
+    /// Google Custom Search engine ID.
     pub google_cx: Option<String>,
+    /// Shodan API key.
     pub shodan_api_key: Option<String>,
 }

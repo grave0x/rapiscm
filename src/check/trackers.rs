@@ -1,3 +1,5 @@
+//! Tracker and analytics service detection in responses.
+
 use crate::analytics::TrackerSignature;
 use crate::types::{Check, Severity};
 
@@ -24,6 +26,7 @@ pub fn check_cookies(headers: &[(String, String)]) -> Vec<Check> {
         if cookie_name.is_empty() {
             continue;
         }
+        // Purpose classification
         let purpose = crate::analytics::classify_cookie(cookie_name);
         checks.push(Check {
             name: format!("cookie:{}", cookie_name),
@@ -35,6 +38,10 @@ pub fn check_cookies(headers: &[(String, String)]) -> Vec<Check> {
                 purpose.as_str()
             ),
         });
+
+        // Security flag analysis
+        let security_checks = crate::analytics::analyze_cookie_security(v);
+        checks.extend(security_checks);
     }
     checks
 }

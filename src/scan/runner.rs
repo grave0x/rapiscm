@@ -1,6 +1,9 @@
+//! Core scan runner: concurrent HTTP requests with rate limiting.
+
 use std::sync::Arc;
 use std::time::Duration;
 
+use rand::Rng;
 use tokio::sync::Semaphore;
 use tracing::{info, warn};
 
@@ -18,6 +21,8 @@ pub struct ScanRunner {
     client: reqwest::Client,
     concurrency: usize,
     rate_delay: Duration,
+    /// Jitter percentage (0 = none). Applied to rate_delay as ±%.
+    jitter_pct: u32,
 }
 
 impl ScanRunner {
@@ -35,11 +40,24 @@ impl ScanRunner {
                 .map_err(|e| crate::error::Error::InvalidUrl(e.to_string()))?;
             builder = builder.proxy(proxy);
         }
+        // Apply ghost UA if enabled
+        if config.ghost {
+            use rand::Rng;
+            let uas = [
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0",
+                "Mozilla/5.0 (iPhone14,6; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+            ];
+            let ua = uas[rand::thread_rng().gen_range(0..uas.len())];
+            builder = builder.user_agent(ua);
+        }
         let client = builder.build()?;
         Ok(Self {
             client,
             concurrency: config.concurrency,
             rate_delay: Duration::from_secs_f64(1.0 / config.rate_limit.max(1) as f64),
+            jitter_pct: config.jitter_pct,
         })
     }
 
@@ -49,6 +67,7 @@ impl ScanRunner {
         let total = endpoints.len();
         let mut handles = Vec::with_capacity(total);
 
+        let jitter_pct = self.jitter_pct;
         for (i, ep) in endpoints.into_iter().enumerate() {
             // Block loop when at concurrency cap.
             // Semaphore is never closed, so acquire cannot fail.
@@ -62,7 +81,17 @@ impl ScanRunner {
 
             handles.push(tokio::spawn(async move {
                 let _permit = permit;
-                tokio::time::sleep(delay).await;
+                // Apply jitter if configured
+                let actual_delay = if jitter_pct > 0 {
+                    let ms = delay.as_secs_f64() * 1000.0;
+                    let jitter_range = ms * (jitter_pct as f64 / 100.0);
+                    let offset: f64 = rand::thread_rng().gen_range(-jitter_range..jitter_range);
+                    let total_ms = (ms + offset).max(1.0);
+                    Duration::from_secs_f64(total_ms / 1000.0)
+                } else {
+                    delay
+                };
+                tokio::time::sleep(actual_delay).await;
                 hit_endpoint(&client, ep).await
             }));
 
@@ -194,7 +223,7 @@ mod tests {
             browser_kind: crate::scan::browser::BrowserKind::Chrome,
             #[cfg(feature = "browser")]
             headed: false,
-            crawl: false,
+            crawl_mode: None,
             depth: 2,
             filter_path: vec![],
             exclude_path: vec![],
@@ -206,6 +235,7 @@ mod tests {
             exclude: vec![],
             show_tags: false,
             trackers: true,
+            tracker_report: false,
             corp: None,
             save: false,
             task_name: None,
@@ -214,6 +244,11 @@ mod tests {
             raw: false,
             task_dir: None,
             git: false,
+            ghost: false,
+            jitter_pct: 0,
+            ua_rotate: None,
+            proxy_rotate: vec![],
+            eval_js: None,
         };
 
         let runner = ScanRunner::new(&config).unwrap();

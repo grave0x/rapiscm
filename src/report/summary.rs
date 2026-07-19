@@ -1,3 +1,5 @@
+//! Summary statistics and text-formatted scan reports.
+
 use std::collections::BTreeMap;
 
 use crate::types::{ResponseResult, Severity};

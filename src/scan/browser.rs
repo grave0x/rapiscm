@@ -1,3 +1,5 @@
+//! Browser-based endpoint discovery (headless Chrome/Firefox).
+
 /// Browser-based endpoint discovery.
 ///
 /// Only compiled when `browser` feature is enabled.
@@ -102,6 +104,155 @@ async fn discover_chrome(
     all_urls.dedup();
     info!("browser discovered {} unique URLs", all_urls.len());
     Ok(all_urls)
+}
+
+/// Take a screenshot of a page and save to file.
+#[cfg(feature = "browser")]
+pub async fn screenshot(
+    url: &reqwest::Url,
+    out_path: &std::path::Path,
+    headed: bool,
+    proxy: Option<&str>,
+) -> anyhow::Result<()> {
+    use chromiumoxide::{Browser, BrowserConfig};
+
+    let mut cfg = BrowserConfig::builder();
+    if headed {
+        cfg = cfg.with_head();
+    }
+    if let Some(p) = proxy {
+        cfg = cfg.arg(format!("--proxy-server={p}"));
+    }
+    let (browser, mut handler) =
+        Browser::launch(cfg.build().map_err(|e| anyhow::anyhow!("{e}"))?).await?;
+    tokio::spawn(async move { while let Some(_) = handler.next().await {} });
+
+    let page = browser.new_page("about:blank").await?;
+    page.goto(url.as_str()).await?;
+    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    page.screenshot(chromiumoxide::ScreenshotParams::new(
+        out_path.to_str().unwrap_or("screenshot.png"),
+        true,  // full page
+        None,  // clip
+        false, // omit background
+    ))
+    .await?;
+
+    drop(page);
+    drop(browser);
+    Ok(())
+}
+
+/// Evaluate JS in browser and extract URLs from the result.
+///
+/// This runs arbitrary JS in the page context and collects any URL strings
+/// returned as an array. Useful for extracting dynamically-registered API routes.
+#[cfg(feature = "browser")]
+pub async fn eval_and_extract(
+    url: &reqwest::Url,
+    eval_js: &str,
+    kind: BrowserKind,
+    headed: bool,
+    proxy: Option<&str>,
+) -> anyhow::Result<Vec<reqwest::Url>> {
+    match kind {
+        BrowserKind::Chrome => eval_chrome(url, eval_js, headed, proxy).await,
+        BrowserKind::Firefox => eval_firefox(url, eval_js, headed, proxy).await,
+    }
+}
+
+#[cfg(feature = "browser")]
+async fn eval_chrome(
+    url: &reqwest::Url,
+    eval_js: &str,
+    headed: bool,
+    proxy: Option<&str>,
+) -> anyhow::Result<Vec<reqwest::Url>> {
+    use chromiumoxide::{Browser, BrowserConfig};
+
+    let mut cfg = BrowserConfig::builder();
+    if headed {
+        cfg = cfg.with_head();
+    }
+    if let Some(p) = proxy {
+        cfg = cfg.arg(format!("--proxy-server={p}"));
+    }
+    let (browser, mut handler) =
+        Browser::launch(cfg.build().map_err(|e| anyhow::anyhow!("{e}"))?).await?;
+    tokio::spawn(async move { while let Some(_) = handler.next().await {} });
+
+    let page = browser.new_page("about:blank").await?;
+    page.goto(url.as_str()).await?;
+    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+
+    let result: serde_json::Value = page.evaluate(eval_js).await?.into_value()?;
+    drop(page);
+    drop(browser);
+
+    let mut urls = Vec::new();
+    match result {
+        serde_json::Value::Array(arr) => {
+            for v in arr {
+                if let Some(s) = v.as_str() {
+                    if let Ok(u) = reqwest::Url::parse(s) {
+                        urls.push(u);
+                    } else if s.starts_with('/') {
+                        if let Ok(u) = url.join(s) {
+                            urls.push(u);
+                        }
+                    }
+                }
+            }
+        }
+        serde_json::Value::String(s) => {
+            if let Ok(u) = reqwest::Url::parse(&s) {
+                urls.push(u);
+            } else if s.starts_with('/') {
+                if let Ok(u) = url.join(&s) {
+                    urls.push(u);
+                }
+            }
+        }
+        _ => {
+            // Try extracting URLs from the JSON string representation
+            let text = result.to_string();
+            let base = url.clone();
+            urls.extend(crate::extract::js::extract_js(&text, &base));
+        }
+    }
+
+    info!("browser eval returned {} URLs", urls.len());
+    Ok(urls)
+}
+
+#[cfg(feature = "browser")]
+async fn eval_firefox(
+    url: &reqwest::Url,
+    eval_js: &str,
+    headed: bool,
+    _proxy: Option<&str>,
+) -> anyhow::Result<Vec<reqwest::Url>> {
+    use fantoccini::ClientBuilder;
+
+    let client = ClientBuilder::native()
+        .connect("http://localhost:4444")
+        .await?;
+
+    if !headed {
+        warn!("firefox headless requires geckodriver with --connect-existing");
+    }
+
+    client.goto(url.as_str()).await?;
+    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+
+    let result = client.eval(eval_js).await?;
+    client.close().await?;
+
+    let mut urls = Vec::new();
+    let text = result.to_string();
+    let base = url.clone();
+    urls.extend(crate::extract::js::extract_js(&text, &base));
+    Ok(urls)
 }
 
 /// Find same-origin links from the current page via JS.

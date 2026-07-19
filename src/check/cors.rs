@@ -1,3 +1,5 @@
+//! CORS header inspection and misconfiguration detection.
+
 use crate::types::{Check, Severity};
 
 /// Check CORS configuration by sending an OPTIONS preflight with a

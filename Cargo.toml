@@ -20,6 +20,7 @@ clap = { version = "4", features = ["derive"] }
 fantoccini = { version = "0.21", optional = true }
 futures-util = "0.3"
 openapiv3 = "2"
+rand = "0.8"
 regex = "1"
 reqwest = { version = "0.12", features = ["json"] }
 serde = { version = "1", features = ["derive"] }

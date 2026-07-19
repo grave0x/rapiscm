@@ -68,7 +68,7 @@ pub fn load_checkpoint(storage: &TaskStorage, id: TaskId) -> Result<Option<Resum
 }
 
 /// Write a checkpoint file recording which endpoint indices have been scanned.
-#[expect(dead_code)]
+#[cfg_attr(not(test), expect(dead_code))]
 pub fn write_checkpoint(
     storage: &TaskStorage,
     id: TaskId,
@@ -113,8 +113,7 @@ mod tests {
         let storage = TaskStorage::new(Some(dir.clone()));
 
         // Save a task with some results first.
-        use crate::task::{GitInfo, ResultSummary, StorageInfo, TaskMeta};
-        use crate::types::Severity;
+        use crate::task::{ResultSummary, StorageInfo, TaskMeta};
         let meta = TaskMeta {
             task_id: 1,
             task_name: "test".into(),
@@ -199,7 +198,7 @@ mod tests {
         let storage = TaskStorage::new(Some(dir.clone()));
 
         // Save a task + results, then write corrupt checkpoint
-        use crate::task::{GitInfo, ResultSummary, StorageInfo, TaskMeta};
+        use crate::task::{ResultSummary, StorageInfo, TaskMeta};
         let meta = TaskMeta {
             task_id: 1,
             task_name: "test".into(),

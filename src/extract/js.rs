@@ -1,3 +1,5 @@
+//! URL extraction from JavaScript source strings.
+
 /// Extract URLs from JavaScript by matching common API call patterns
 /// and string literals containing URL-like content.
 use reqwest::Url;

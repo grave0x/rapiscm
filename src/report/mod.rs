@@ -1,6 +1,7 @@
 //! Report formatting dispatcher (table, JSON, markdown).
 //! Also includes the static HTML site generator.
 
+pub mod doc;
 pub mod json;
 pub mod site;
 pub mod summary;
@@ -18,5 +19,6 @@ pub fn format_results(results: &[ResponseResult], format: OutputFormat) -> Strin
             let t = table::format_markdown_table(results);
             format!("{s}\n\n## Results\n\n{t}")
         }
+        OutputFormat::Doc => doc::format_doc(results),
     }
 }

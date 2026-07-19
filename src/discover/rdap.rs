@@ -4,7 +4,7 @@
 //! then extracts associated IP network descriptions and domain-like names.
 //!
 //! Endpoints:
-//!   GET https://rdap.arin.net/registry/entities?fn={org}
+//!   <https://rdap.arin.net/registry/entities?fn={org}>
 
 use crate::error::{Error, Result};
 

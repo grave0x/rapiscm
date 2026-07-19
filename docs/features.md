@@ -10,6 +10,7 @@
 | **Fuzz** (`rapiscm fuzz`) | Fuzz endpoints with wordlist, match/filter by status, size, regex |
 | **Session replay** (`rapiscm session`) | Replay recorded JSONL session with live probes, timing analytics |
 | **Corporate discovery** (`rapiscm corp`) | Discover owned domains for an organisation via multiple OSINT sources |
+| **Page capture** (`rapiscm capture`) | Download page HTML, extract JS API endpoints, take screenshot |
 
 ## Endpoint discovery
 
@@ -19,7 +20,10 @@
 - **JSON discovery** — probe for `/api`, `/swagger.json`, `/openapi.json`, `/api/docs`
 - **Sitemap parsing** — extract endpoints from `/sitemap.xml`
 - **robots.txt parsing** — extract disallowed paths as potential endpoints
-- **Crawl mode** (`--crawl`) — recursive link following for SPA/deep discovery
+- **Crawl mode** (`--crawl html|js|full`) — recursive link following with optional JS bundle scanning
+- **JS bundle scanning** (`--crawl js`) — download `<script src>` bundles, extract API routes from minified code
+- **Ghost mode** (`--ghost`) — stealth scanning with UA rotation, request jitter, header randomization, proxy rotation
+- **Browser JS eval** (`--eval <js>`) — run custom JS in headless browser, extract returned URLs as endpoints
 - **Browser discovery** (`--features browser`) — headless Chrome/Firefox for JS-rendered content
 - **Built-in wordlists** — common API paths, RESTful patterns, admin paths
 
@@ -68,6 +72,8 @@ Control which endpoints appear in output:
 | **Table** (`-o table`) | Terminal output with ANSI colours | Interactive use |
 | **JSON** (`-o json`) | Structured JSON lines | Machine processing, CI |
 | **Markdown** (`-o md`) | Markdown tables | Reports, documentation |
+| **Doc** (`-o doc`) | Structured API documentation (llm-api-style) | API docs generation |
+| **HTML site** (`--report <name>`) | Full static HTML report site with navigation | Visual sharing |
 
 ## Task system
 
@@ -118,7 +124,7 @@ Persist, manage, and compare scan results:
 ## Project module map
 
 | Module | Public API | Purpose |
-|---|---|---|
+|---|---|---|---|
 | `analytics` | `detect.rs`, `sigdb.rs` | Tracker/analytics signature detection |
 | `check` | `mod.rs`, `auth.rs`, `cors.rs`, `schema.rs`, `security.rs`, `trackers.rs` | Security checks (sync + async) |
 | `cli` | `cli.rs` | Clap CLI definition |
@@ -128,8 +134,9 @@ Persist, manage, and compare scan results:
 | `extract` | `headers.rs`, `html.rs`, `js.rs`, `json.rs`, `sitemap.rs` | Endpoint extraction from various sources |
 | `filter` | `mod.rs` | Endpoint filter expression parsing |
 | `fuzz` | `runner.rs`, `wordlist.rs`, `matcher.rs` | Fuzzing engine |
-| `parser` | `spec.rs`, `url.rs` | OpenAPI / URL endpoint parsing |
-| `report` | `table.rs`, `json.rs`, `summary.rs` | Output formatters |
+| `ghost` | `ghost.rs` | Stealth scanning (UA rotation, jitter, header randomization, proxy rotation) |
+| `parser` | `spec.rs`, `url.rs`, `js_bundle.rs` | OpenAPI / URL / JS bundle endpoint parsing |
+| `report` | `table.rs`, `json.rs`, `summary.rs`, `doc.rs`, `site.rs` | Output formatters (table, JSON, markdown, doc, HTML site) |
 | `scan` | `runner.rs`, `spec.rs`, `url.rs`, `browser.rs` | Scan pipeline orchestration |
 | `session` | `parse.rs`, `timing.rs` | Session replay engine |
 | `tag` | `mod.rs` | Tag management |

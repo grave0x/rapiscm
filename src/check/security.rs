@@ -1,3 +1,5 @@
+//! Security header analysis (HSTS, CSP, X-Frame-Options, etc).
+
 use crate::types::{Check, Severity};
 
 /// Run all security header checks on a response's headers.

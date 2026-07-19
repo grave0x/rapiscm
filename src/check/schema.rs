@@ -1,3 +1,5 @@
+//! Response schema validation (content-type, body structure).
+
 use crate::types::{Check, Severity};
 
 /// Validate a response against known expectations.

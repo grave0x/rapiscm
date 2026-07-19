@@ -1,3 +1,5 @@
+//! Orchestrates security and compliance checks across scan results.
+
 pub mod auth;
 pub mod cors;
 pub mod schema;

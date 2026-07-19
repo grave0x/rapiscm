@@ -1,3 +1,5 @@
+//! Built-in wordlist of common API endpoint paths.
+
 /// Extended API path wordlist (~200 entries) for fuzzing.
 pub fn api_paths() -> Vec<&'static str> {
     vec![

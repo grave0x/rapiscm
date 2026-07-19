@@ -1,3 +1,5 @@
+//! JSON output formatter for scan results.
+
 use crate::types::ResponseResult;
 
 /// Format results as pretty-printed JSON.

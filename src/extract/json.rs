@@ -1,3 +1,5 @@
+//! URL extraction from JSON response bodies.
+
 /// Extract URLs from JSON responses by walking the value tree
 /// and collecting string values that look like URLs.
 use reqwest::Url;

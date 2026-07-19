@@ -127,7 +127,7 @@ mod tests {
             log_level: "off".into(),
             log_filter: vec![],
             log_format: "text".into(),
-            crawl: false,
+            crawl: None,
             depth: 2,
             filter_path: vec![],
             exclude_path: vec![],
@@ -139,6 +139,7 @@ mod tests {
             exclude: vec![],
             show_tags: false,
             no_trackers: false,
+            tracker_report: false,
             corp: None,
             save: false,
             task_name: None,
@@ -149,6 +150,11 @@ mod tests {
             resume: None,
             git: false,
             report: None,
+            ghost: false,
+            eval: None,
+            ua_rotate: None,
+            jitter: 0,
+            proxy_rotate: vec![],
         }
     }
 

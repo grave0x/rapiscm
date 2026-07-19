@@ -1,5 +1,8 @@
+//! Unified error types for the rapiscm crate.
+
 use std::path::PathBuf;
 
+/// Crate-wide error type covering spec parsing, HTTP, IO, and session errors.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("invalid auth format: {0}")]
@@ -39,4 +42,5 @@ pub enum Error {
     Task(String),
 }
 
+/// Shorthand alias for `std::result::Result<T, Error>`.
 pub type Result<T> = std::result::Result<T, Error>;

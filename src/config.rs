@@ -1,7 +1,9 @@
+//! Scan configuration, API keys, and output format parsing.
+
 use std::path::PathBuf;
 use std::time::Duration;
 
-use crate::cli::{Cli, Command};
+use crate::cli::{Cli, Command, CrawlMode};
 use crate::error::{Error, Result};
 use crate::types::{ApiKeys, AuthConfig, OutputFormat, Target};
 
@@ -33,7 +35,7 @@ pub struct ScanConfig {
     #[cfg(feature = "browser")]
     pub headed: bool,
 
-    pub crawl: bool,
+    pub crawl_mode: Option<CrawlMode>,
     pub depth: usize,
     pub filter_path: Vec<String>,
     pub exclude_path: Vec<String>,
@@ -45,6 +47,7 @@ pub struct ScanConfig {
     pub exclude: Vec<String>,
     pub show_tags: bool,
     pub trackers: bool,
+    pub tracker_report: bool,
     pub corp: Option<String>,
 
     // Task system fields.
@@ -55,6 +58,13 @@ pub struct ScanConfig {
     pub raw: bool,
     pub task_dir: Option<PathBuf>,
     pub git: bool,
+
+    // Ghost mode fields.
+    pub ghost: bool,
+    pub jitter_pct: u32,
+    pub ua_rotate: Option<String>,
+    pub proxy_rotate: Vec<String>,
+    pub eval_js: Option<String>,
 }
 
 impl ScanConfig {
@@ -86,7 +96,7 @@ impl ScanConfig {
             browser_kind: crate::scan::browser::BrowserKind::Chrome,
             #[cfg(feature = "browser")]
             headed: global.headed,
-            crawl: global.crawl,
+            crawl_mode: global.crawl,
             depth: global.depth,
             filter_path: global.filter_path.clone(),
             exclude_path: global.exclude_path.clone(),
@@ -98,6 +108,7 @@ impl ScanConfig {
             exclude: global.exclude.clone(),
             show_tags: global.show_tags,
             trackers: !global.no_trackers,
+            tracker_report: global.tracker_report,
             corp: global.corp.clone(),
             save: global.save,
             task_name: global.task_name.clone(),
@@ -106,6 +117,11 @@ impl ScanConfig {
             raw: global.raw,
             task_dir: global.task_dir.clone(),
             git: global.git,
+            ghost: global.ghost,
+            jitter_pct: global.jitter,
+            ua_rotate: global.ua_rotate.clone(),
+            proxy_rotate: global.proxy_rotate.clone(),
+            eval_js: global.eval.clone(),
         })
     }
 
@@ -144,6 +160,10 @@ impl ScanConfig {
             Command::Corp { .. } => unreachable!("corp mode handled separately in main"),
             Command::Session { .. } => unreachable!("session mode handled separately in main"),
             Command::Tasks { .. } => unreachable!("tasks mode handled separately in main"),
+            Command::Capture { url, global, .. } => {
+                let parsed = parse_url(&url)?;
+                (Target::Url(parsed), global)
+            }
         };
 
         let headers = parse_headers(&global.headers)?;
@@ -177,7 +197,7 @@ impl ScanConfig {
             },
             #[cfg(feature = "browser")]
             headed: global.headed,
-            crawl: global.crawl,
+            crawl_mode: global.crawl,
             depth: global.depth,
             filter_path: global.filter_path,
             exclude_path: global.exclude_path,
@@ -189,6 +209,7 @@ impl ScanConfig {
             exclude: global.exclude,
             show_tags: global.show_tags,
             trackers: !global.no_trackers,
+            tracker_report: global.tracker_report,
             corp: global.corp,
             save: global.save,
             task_name: global.task_name,
@@ -197,6 +218,11 @@ impl ScanConfig {
             raw: global.raw,
             task_dir: global.task_dir,
             git: global.git,
+            ghost: global.ghost,
+            jitter_pct: global.jitter,
+            ua_rotate: global.ua_rotate,
+            proxy_rotate: global.proxy_rotate,
+            eval_js: global.eval,
         })
     }
 }
@@ -299,6 +325,7 @@ pub fn parse_output(raw: &str) -> Result<OutputFormat> {
         "table" => Ok(OutputFormat::Table),
         "json" => Ok(OutputFormat::Json),
         "md" => Ok(OutputFormat::Markdown),
+        "doc" => Ok(OutputFormat::Doc),
         other => Err(Error::InvalidOutputFormat(other.to_string())),
     }
 }

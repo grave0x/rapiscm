@@ -1,4 +1,5 @@
-/// Response matching and filtering engine for fuzzing.
+//! Response matching and filtering configuration for fuzzing.
+
 use crate::types::ResponseResult;
 
 /// Configuration for matching/filtering fuzz responses.
@@ -20,24 +21,32 @@ pub struct MatchConfig {
     pub baseline: Option<Baseline>,
 }
 
+/// A numeric range with inclusive start and end bounds.
 #[derive(Debug, Clone)]
 pub struct Range {
+    /// Start of range (inclusive).
     pub start: u64,
+    /// End of range (inclusive).
     pub end: u64,
 }
 
 impl Range {
+    /// Create a single-value range (`start == end`).
     pub fn single(v: u64) -> Self {
         Range { start: v, end: v }
     }
+    /// Check if a value falls within the range (inclusive).
     pub fn contains(&self, v: u64) -> bool {
         v >= self.start && v <= self.end
     }
 }
 
+/// Baseline response characteristics for filtering common (uninteresting) responses.
 #[derive(Debug, Clone)]
 pub struct Baseline {
+    /// Baseline HTTP status code.
     pub status: u16,
+    /// Baseline response body size.
     pub size: usize,
 }
 
@@ -108,7 +117,7 @@ impl MatchConfig {
     }
 }
 
-/// Parse a match/filter string like "200,201,400-499" into Vec<Range>.
+/// Parse a match/filter string like `"200,201,400-499"` into `Vec<Range>`.
 pub fn parse_range_list(s: &str) -> Vec<Range> {
     s.split(',')
         .filter_map(|part| {

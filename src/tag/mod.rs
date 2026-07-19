@@ -1,3 +1,5 @@
+//! Endpoint and response tagging (method, status, content-type, tech).
+
 /// Tag engine — classifies endpoints into categories based on URL, method,
 /// response characteristics, and spec metadata.
 use crate::types::{Endpoint, ResponseResult, Severity};

@@ -1,3 +1,5 @@
+//! OpenAPI spec file parser (JSON/YAML) — extracts endpoints.
+
 use std::path::Path;
 
 use openapiv3::{OpenAPI, Parameter, ReferenceOr, Server};

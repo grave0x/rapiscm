@@ -29,9 +29,10 @@ CLI (clap)
                               ├── check::run_async_checks (CORS, auth)
                               │
                               ├── report::format_results
-                              │     ├── table (ANSI terminal)
-                              │     ├── json (JSON lines)
-                              │     └── md (markdown tables)
+    │               ├── table (ANSI terminal)
+    │               ├── json (JSON lines)
+    │               ├── md (markdown tables)
+    │               └── doc (structured API docs)
                               │
                               └── task (--save)  ──→  task::TaskStorage
 ```
@@ -52,11 +53,14 @@ main.rs
   │   ├── url.rs     (depends on extract/*, parser::url, runner)
   │   └── browser.rs (features= browser, depends on runner)
   │
-  ├── parser/
-  │   ├── spec.rs  (depends on types, openapiv3)
-  │   └── url.rs   (depends on types, extract/*)
-  │
-  ├── check/
+    ├── parser/
+    │   ├── spec.rs      (depends on types, openapiv3)
+    │   ├── url.rs       (depends on types, extract/*)
+    │   └── js_bundle.rs (depends on regex, reqwest, extract::js)
+    │
+    ├── ghost.rs  (depends on rand)
+    │
+    ├── check/
   │   ├── mod.rs     (orchestrator)
   │   ├── security.rs
   │   ├── cors.rs

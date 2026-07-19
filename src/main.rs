@@ -9,6 +9,7 @@ mod error;
 mod extract;
 mod filter;
 mod fuzz;
+mod ghost;
 mod parser;
 mod report;
 mod scan;
@@ -18,6 +19,7 @@ mod task;
 mod types;
 mod util;
 
+use crate::types::Endpoint;
 use clap::Parser;
 use tracing_subscriber::EnvFilter;
 
@@ -51,6 +53,7 @@ fn get_global(cli: &cli::Cli) -> &cli::GlobalArgs {
         cli::Command::Fuzz { global, .. } => global,
         cli::Command::Session { global, .. } => global,
         cli::Command::Tasks { global, .. } => global,
+        cli::Command::Capture { global, .. } => global,
     }
 }
 
@@ -228,10 +231,127 @@ async fn main() -> anyhow::Result<()> {
                 }
                 return Ok(());
             }
-            TasksAction::Rebuild { .. } => {
-                return Err(anyhow::anyhow!(
-                    "rebuild not available from CLI; use programmatic API"
-                ));
+            TasksAction::Rebuild { id, all } => {
+                let meta = storage.load_meta(*id).map_err(|e| anyhow::anyhow!("{e}"))?;
+                let results = storage
+                    .load_results(*id)
+                    .map_err(|e| anyhow::anyhow!("{e}"))?;
+
+                // Rebuild by re-scanning endpoints
+                let target_url = if meta.target.starts_with("url:") {
+                    reqwest::Url::parse(&meta.target[4..])
+                        .unwrap_or_else(|_| reqwest::Url::parse("https://example.com").unwrap())
+                } else {
+                    reqwest::Url::parse("https://example.com").unwrap()
+                };
+
+                let rebuild_target = types::Target::Url(target_url.clone());
+                let rebuild_config = config::ScanConfig::from_cli_global(g, rebuild_target)?;
+                let runner = scan::runner::ScanRunner::new(&rebuild_config)?;
+
+                // Collect endpoints to re-scan
+                let target_endpoints: Vec<Endpoint> = if *all {
+                    // Re-scan everything
+                    results
+                        .iter()
+                        .map(|r| {
+                            let mut headers = Vec::new();
+                            if let Some(ref h) = crate::types::auth_to_header(&rebuild_config.auth)
+                            {
+                                headers.push(h.clone());
+                            }
+                            Endpoint {
+                                method: reqwest::Method::from_bytes(r.endpoint_method.as_bytes())
+                                    .unwrap_or(reqwest::Method::GET),
+                                url: reqwest::Url::parse(&r.endpoint_url)
+                                    .unwrap_or_else(|_| target_url.clone()),
+                                headers,
+                                body: None,
+                                expected_status: None,
+                                tags: vec![],
+                            }
+                        })
+                        .collect()
+                } else {
+                    // Only re-scan failed endpoints
+                    results
+                        .iter()
+                        .filter(|r| r.status_code == 0 || r.status_code >= 400)
+                        .map(|r| {
+                            let mut headers = Vec::new();
+                            if let Some(ref h) = crate::types::auth_to_header(&rebuild_config.auth)
+                            {
+                                headers.push(h.clone());
+                            }
+                            Endpoint {
+                                method: reqwest::Method::from_bytes(r.endpoint_method.as_bytes())
+                                    .unwrap_or(reqwest::Method::GET),
+                                url: reqwest::Url::parse(&r.endpoint_url)
+                                    .unwrap_or_else(|_| target_url.clone()),
+                                headers,
+                                body: None,
+                                expected_status: None,
+                                tags: vec![],
+                            }
+                        })
+                        .collect()
+                };
+
+                if target_endpoints.is_empty() {
+                    println!("No endpoints to re-scan (task {id} has no failures).");
+                    return Ok(());
+                }
+
+                tracing::info!(
+                    "Rebuilding task {id}: re-scanning {} endpoints",
+                    target_endpoints.len()
+                );
+                let target_endpoints_len = target_endpoints.len();
+                let new_results = runner.run(target_endpoints).await;
+
+                // Merge: replace old results with new ones (matched by URL+method)
+                let mut merged: Vec<types::ResponseResult> = results;
+                for new_r in new_results {
+                    let found = merged.iter_mut().find(|old| {
+                        old.endpoint_url == new_r.endpoint_url
+                            && old.endpoint_method == new_r.endpoint_method
+                    });
+                    if let Some(old) = found {
+                        *old = new_r;
+                    } else {
+                        merged.push(new_r);
+                    }
+                }
+
+                // Run checks on merged results
+                for r in &mut merged {
+                    crate::check::run_checks(r);
+                }
+
+                let updated_meta = task::TaskMeta {
+                    result_summary: task::summarize(&merged),
+                    endpoint_count: merged.len(),
+                    duration_seconds: 0.0,
+                    ..meta
+                };
+                storage
+                    .save(
+                        &updated_meta,
+                        &merged,
+                        !rebuild_config.no_bodies,
+                        rebuild_config.raw,
+                    )
+                    .map_err(|e| anyhow::anyhow!("{e}"))?;
+
+                println!(
+                    "Rebuilt task {id}: {} endpoints re-scanned, task updated",
+                    target_endpoints_len
+                );
+
+                // Print results
+                let output = report::format_results(&merged, rebuild_config.output);
+                println!("{output}");
+                return Ok(());
             }
         }
     }
@@ -317,6 +437,84 @@ async fn main() -> anyhow::Result<()> {
 
         let output = report::format_results(&merged, resume_config.output);
         println!("{output}");
+        return Ok(());
+    }
+
+    // ── Capture subcommand: save page as evidence ──
+    if let cli::Command::Capture {
+        url,
+        output,
+        screenshot: _,
+        html,
+        extract,
+        ..
+    } = &cli.command
+    {
+        let base_url = reqwest::Url::parse(url)
+            .or_else(|_| reqwest::Url::parse(&format!("https://{url}")))
+            .map_err(|e| anyhow::anyhow!("invalid capture URL: {e}"))?;
+
+        std::fs::create_dir_all(output)
+            .map_err(|e| anyhow::anyhow!("failed to create output dir: {e}"))?;
+
+        // Fetch and save the page
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()?;
+
+        let resp = client.get(base_url.as_str()).send().await?;
+        let body = resp.bytes().await.unwrap_or_default();
+
+        if *html {
+            let html_path = output.join("index.html");
+            std::fs::write(&html_path, &body)
+                .map_err(|e| anyhow::anyhow!("failed to save HTML: {e}"))?;
+            tracing::info!("Saved HTML ({} bytes) to {:?}", body.len(), html_path);
+        }
+
+        // Extract API endpoints from JS bundles if requested
+        if *extract {
+            let text = String::from_utf8_lossy(&body);
+            match crate::parser::js_bundle::scan_bundles(&client, &text, &base_url).await {
+                Ok(js_eps) => {
+                    let urls = crate::parser::js_bundle::to_scan_urls(&js_eps, &base_url);
+                    let api_path = output.join("api_endpoints.txt");
+                    let content: String = urls
+                        .iter()
+                        .map(|u| u.to_string())
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    std::fs::write(&api_path, &content)
+                        .map_err(|e| anyhow::anyhow!("failed to save endpoints: {e}"))?;
+                    tracing::info!(
+                        "Found {} API endpoints, saved to {:?}",
+                        urls.len(),
+                        api_path
+                    );
+                }
+                Err(e) => tracing::warn!("JS bundle scan failed: {e}"),
+            }
+        }
+
+        // Screenshot with browser if requested
+        #[cfg(feature = "browser")]
+        if *screenshot {
+            use futures_util::StreamExt;
+            let shot_path = output.join("screenshot.png");
+            match crate::scan::browser::screenshot(
+                &base_url,
+                &shot_path,
+                g.headed,
+                g.proxy.as_deref(),
+            )
+            .await
+            {
+                Ok(_) => tracing::info!("Screenshot saved to {:?}", shot_path),
+                Err(e) => tracing::warn!("Screenshot failed: {e}"),
+            }
+        }
+
+        tracing::info!("Capture complete. Results in {:?}", output);
         return Ok(());
     }
 

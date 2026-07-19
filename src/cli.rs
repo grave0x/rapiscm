@@ -1,6 +1,8 @@
+//! CLI argument definitions (clap derive).
+
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(
@@ -11,6 +13,17 @@ use clap::{Args, Parser, Subcommand};
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
+}
+
+/// How to crawl pages for endpoint discovery.
+#[derive(Debug, Clone, Copy, PartialEq, ValueEnum)]
+pub enum CrawlMode {
+    /// Only fetch HTML pages (default crawl behavior).
+    Html,
+    /// Fetch HTML pages AND download/parse JS bundles for API endpoints.
+    Js,
+    /// Fetch HTML, JS bundles, and use the browser for SPA rendering.
+    Full,
 }
 
 #[derive(Subcommand, Clone)]
@@ -80,6 +93,31 @@ pub enum Command {
     Tasks {
         #[command(subcommand)]
         action: TasksAction,
+
+        #[command(flatten)]
+        global: GlobalArgs,
+    },
+
+    /// Capture a page as evidence (HTML + screenshot + JS API endpoints)
+    Capture {
+        /// URL to capture
+        url: String,
+
+        /// Output directory for captured page
+        #[arg(short, long, default_value = "capture")]
+        output: PathBuf,
+
+        /// Take a screenshot (requires --browser feature)
+        #[arg(long)]
+        screenshot: bool,
+
+        /// Save rendered HTML
+        #[arg(long, default_value = "true")]
+        html: bool,
+
+        /// Extract API endpoints from JS bundles
+        #[arg(long)]
+        extract: bool,
 
         #[command(flatten)]
         global: GlobalArgs,
@@ -188,7 +226,7 @@ pub struct GlobalArgs {
     #[arg(short = 'H', long = "header", value_name = "KEY:VALUE")]
     pub headers: Vec<String>,
 
-    /// Auth configuration: bearer:<token>, basic:<user:pass>, or header:<name:value>
+    /// Auth configuration: `bearer:<token>`, `basic:<user:pass>`, or `header:<name:value>`
     #[arg(long)]
     pub auth: Option<String>,
 
@@ -204,8 +242,8 @@ pub struct GlobalArgs {
     #[arg(long, default_value = "10")]
     pub concurrency: usize,
 
-    /// Output format: table, json, md
-    #[arg(short = 'o', long, default_value = "table", value_parser = ["table", "json", "md"])]
+    /// Output format: table, json, md, doc
+    #[arg(short = 'o', long, default_value = "table", value_parser = ["table", "json", "md", "doc"])]
     pub output: String,
 
     /// Follow 3xx redirects
@@ -258,9 +296,9 @@ pub struct GlobalArgs {
     #[arg(long)]
     pub headed: bool,
 
-    /// Enable recursive crawl for deeper endpoint discovery
-    #[arg(long)]
-    pub crawl: bool,
+    /// Crawl mode: html, js, full (default: off). Use --crawl js to scan JS bundles
+    #[arg(long, value_enum)]
+    pub crawl: Option<CrawlMode>,
 
     /// Maximum crawl depth (default: 2, only used with --crawl)
     #[arg(long, default_value = "2")]
@@ -306,6 +344,10 @@ pub struct GlobalArgs {
     #[arg(long)]
     pub no_trackers: bool,
 
+    /// Detailed tracker analysis report (includes cookie breakdown, third-party connections, device profile)
+    #[arg(long)]
+    pub tracker_report: bool,
+
     /// Company/organization name for domain discovery (scan + discover)
     /// Use --corp "Org Name" to discover domains, or --corp (empty) for
     /// auto-detection from target URL.
@@ -343,4 +385,28 @@ pub struct GlobalArgs {
     /// Capture git context (SHA, branch, message) when saving a task
     #[arg(long)]
     pub git: bool,
+
+    /// Generate reports (API docs site + security audit) in `reports/<name>/`
+    #[arg(long)]
+    pub report: Option<String>,
+
+    /// Ghost mode: stealth scanning with UA rotation, request jitter, header randomization
+    #[arg(long)]
+    pub ghost: bool,
+
+    /// Evaluate JS in browser to extract API endpoints (requires --browser feature)
+    #[arg(long)]
+    pub eval: Option<String>,
+
+    /// User-agent rotation: "mobile", "desktop", "random", or comma-separated list
+    #[arg(long)]
+    pub ua_rotate: Option<String>,
+
+    /// Request jitter as percentage (e.g. 30 = ±30% random delay)
+    #[arg(long, default_value = "0")]
+    pub jitter: u32,
+
+    /// Proxy rotation: comma-separated proxy URLs (overrides --proxy)
+    #[arg(long, value_delimiter = ',')]
+    pub proxy_rotate: Vec<String>,
 }

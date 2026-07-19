@@ -1,3 +1,5 @@
+//! Core fuzz runner: executes requests and collects responses.
+
 /// Fuzzing runner — dispatches path/param/method/header fuzz loops.
 use std::sync::Arc;
 use std::time::Duration;
