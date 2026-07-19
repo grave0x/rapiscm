@@ -335,4 +335,12 @@ pub struct GlobalArgs {
     /// Task storage directory (default: ~/.local/share/rapiscm/tasks)
     #[arg(long)]
     pub task_dir: Option<PathBuf>,
+
+    /// Task ID to resume (re-scans failed/incomplete endpoints from a saved task)
+    #[arg(long)]
+    pub resume: Option<u64>,
+
+    /// Capture git context (SHA, branch, message) when saving a task
+    #[arg(long)]
+    pub git: bool,
 }

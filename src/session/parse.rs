@@ -22,8 +22,10 @@ struct RawLine {
     method: Option<String>,
     url: Option<String>,
     status: Option<u16>,
+    #[expect(dead_code)]
     request_headers: Option<HashMap<String, String>>,
     response_headers: Option<HashMap<String, String>>,
+    #[expect(dead_code)]
     request_body: Option<String>,
     response_body: Option<String>,
     response_time_ms: Option<u64>,

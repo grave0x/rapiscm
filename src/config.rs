@@ -7,6 +7,7 @@ use crate::types::{ApiKeys, AuthConfig, OutputFormat, Target};
 
 /// Resolved, validated configuration from CLI args.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ScanConfig {
     pub target: Target,
     pub method: Option<String>,
@@ -53,6 +54,7 @@ pub struct ScanConfig {
     pub no_bodies: bool,
     pub raw: bool,
     pub task_dir: Option<PathBuf>,
+    pub git: bool,
 }
 
 impl ScanConfig {
@@ -103,6 +105,7 @@ impl ScanConfig {
             no_bodies: global.no_bodies,
             raw: global.raw,
             task_dir: global.task_dir.clone(),
+            git: global.git,
         })
     }
 
@@ -193,6 +196,7 @@ impl ScanConfig {
             no_bodies: global.no_bodies,
             raw: global.raw,
             task_dir: global.task_dir,
+            git: global.git,
         })
     }
 }

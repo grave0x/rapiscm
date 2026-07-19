@@ -139,6 +139,7 @@ impl TaskStorage {
     }
 
     /// Get a single index entry by id.
+    #[expect(dead_code)]
     pub fn get_entry(&self, id: TaskId) -> Option<IndexEntry> {
         let entries = index::load_index(&self.index_path());
         entries.into_iter().find(|e| e.task_id == id)
@@ -172,6 +173,7 @@ impl TaskStorage {
     }
 
     /// Total disk usage of the tasks directory.
+    #[expect(dead_code)]
     pub fn disk_usage(&self) -> u64 {
         fn dir_size(path: &Path) -> u64 {
             let Ok(rd) = fs::read_dir(path) else {

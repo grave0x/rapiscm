@@ -1,6 +1,6 @@
 //! Diff two saved tasks — compare result sets and classify changes.
 
-use crate::types::{Check, Severity as Sev};
+use crate::types::Check;
 use serde::{Deserialize, Serialize};
 
 use super::TaskStorage;

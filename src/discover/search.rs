@@ -19,7 +19,8 @@ struct GoogleSearchItem {
     #[serde(default)]
     link: String,
     #[serde(default)]
-    displayLink: String,
+    #[serde(rename = "displayLink")]
+    display_link: String,
 }
 
 /// Search Google for domains related to an organization.
@@ -55,8 +56,8 @@ pub async fn google_search(org: &str, api_key: &str, cx: &str) -> Result<Vec<Str
     let mut domains: Vec<String> = Vec::new();
     for item in &search.items {
         // Extract domain from displayLink or link
-        let domain = if !item.displayLink.is_empty() {
-            item.displayLink.clone()
+        let domain = if !item.display_link.is_empty() {
+            item.display_link.clone()
         } else {
             extract_domain(&item.link)
         };

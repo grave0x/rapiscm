@@ -253,6 +253,71 @@ async fn main() -> anyhow::Result<()> {
         tracing::info!("Discovered {} domains for {org_name}", domains.len());
     }
 
+    // ── --resume <ID>: re-scan failed/incomplete endpoints from a saved task ──
+    if let Some(task_id) = &g.resume {
+        let storage = task::TaskStorage::new(g.task_dir.clone());
+        let checkpoint = task::resume::load_checkpoint(&storage, *task_id)
+            .map_err(|e| anyhow::anyhow!("Failed to load task {task_id} checkpoint: {e}"))?;
+        let state = match checkpoint {
+            Some(s) => s,
+            None => {
+                tracing::info!("Task {task_id} has no incomplete endpoints — scan complete");
+                return Ok(());
+            }
+        };
+
+        tracing::info!(
+            "Resuming task {task_id}: {} remaining, {} already done",
+            state.remaining.len(),
+            state.skipped
+        );
+
+        let resume_config = config::ScanConfig::from_cli_global(
+            g,
+            types::Target::Url(reqwest::Url::parse("https://resume.local").expect("static URL")),
+        )?;
+        let runner = scan::runner::ScanRunner::new(&resume_config)?;
+        let new_results = runner.run(state.remaining).await;
+
+        // Merge: replace old failed results with new ones (matched by URL+method)
+        let mut merged: Vec<types::ResponseResult> = state.existing_results;
+        for new_r in new_results {
+            let found = merged.iter_mut().find(|old| {
+                old.endpoint_url == new_r.endpoint_url
+                    && old.endpoint_method == new_r.endpoint_method
+            });
+            if let Some(old) = found {
+                *old = new_r;
+            } else {
+                merged.push(new_r);
+            }
+        }
+
+        // Re-save the task with merged results
+        let meta = storage
+            .load_meta(*task_id)
+            .map_err(|e| anyhow::anyhow!("Failed to load task {task_id} meta: {e}"))?;
+        let updated_meta = task::TaskMeta {
+            result_summary: task::summarize(&merged),
+            endpoint_count: merged.len(),
+            duration_seconds: 0.0,
+            ..meta
+        };
+        storage
+            .save(
+                &updated_meta,
+                &merged,
+                !resume_config.no_bodies,
+                resume_config.raw,
+            )
+            .map_err(|e| anyhow::anyhow!("Failed to save resumed task: {e}"))?;
+        task::resume::clear_checkpoint(&storage, *task_id);
+
+        let output = report::format_results(&merged, resume_config.output);
+        println!("{output}");
+        return Ok(());
+    }
+
     match &cli.command {
         cli::Command::Fuzz {
             target,
@@ -322,7 +387,11 @@ async fn main() -> anyhow::Result<()> {
                     command: cmd_str.to_string(),
                     target: config.target.to_string(),
                     config: serde_json::json!({}),
-                    git: None,
+                    git: if config.git {
+                        util::capture_git_info()
+                    } else {
+                        None
+                    },
                     endpoint_count: results.len(),
                     result_summary: summary,
                     storage: task::StorageInfo {

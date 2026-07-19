@@ -87,6 +87,7 @@ pub async fn run_session(config: &SessionConfig) -> Result<()> {
         no_bodies: true,
         raw: false,
         task_dir: None,
+        git: false,
     };
 
     if !config.skip_cors || !config.skip_auth {

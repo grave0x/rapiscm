@@ -213,6 +213,7 @@ mod tests {
             no_bodies: false,
             raw: false,
             task_dir: None,
+            git: false,
         };
 
         let runner = ScanRunner::new(&config).unwrap();

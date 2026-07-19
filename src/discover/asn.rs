@@ -59,6 +59,7 @@ struct BgpViewPrefix {
     #[serde(default)]
     prefix: String,
     #[serde(default)]
+    #[expect(dead_code)]
     description: String,
 }
 

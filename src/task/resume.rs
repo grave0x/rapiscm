@@ -5,7 +5,6 @@
 //! `resume` reads them to determine which endpoints still need scanning.
 
 use std::fs;
-use std::path::Path;
 
 use crate::error::Error;
 use crate::task::TaskStorage;
@@ -16,6 +15,7 @@ use super::TaskId;
 /// Resume checkpoint state.
 #[derive(Debug, Clone)]
 pub struct ResumeState {
+    #[expect(dead_code)]
     pub task_id: TaskId,
     pub skipped: usize,
     pub remaining: Vec<Endpoint>,
@@ -68,6 +68,7 @@ pub fn load_checkpoint(storage: &TaskStorage, id: TaskId) -> Result<Option<Resum
 }
 
 /// Write a checkpoint file recording which endpoint indices have been scanned.
+#[expect(dead_code)]
 pub fn write_checkpoint(
     storage: &TaskStorage,
     id: TaskId,

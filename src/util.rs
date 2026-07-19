@@ -1,6 +1,10 @@
 //! Shared utility functions.
 
+use std::path::Path;
+use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::task::GitInfo;
 
 /// ISO-8601-like timestamp (UTC, second precision).
 pub fn now_iso() -> String {
@@ -39,6 +43,83 @@ fn days_to_date(mut days: i64) -> (i64, u32, u32) {
     (y, m as u32, d as u32)
 }
 
+/// Capture git context at compile-time or from the working directory.
+///
+/// Reads `.git/HEAD` to determine branch and SHA. Falls back to
+/// `git` CLI if `.git/HEAD` is a symlink or needs chasing.
+/// Returns `None` if not in a git repo or git info can't be read.
+pub fn capture_git_info() -> Option<GitInfo> {
+    // Try from manifest dir first (cleaner for compiled binary), then cwd
+    let git_dir = std::env::var("CARGO_MANIFEST_DIR")
+        .ok()
+        .map(|d| Path::new(&d).join(".git"))
+        .filter(|p| p.exists())
+        .unwrap_or_else(|| Path::new(".git").to_path_buf());
+
+    let head_path = git_dir.join("HEAD");
+    let head_raw = std::fs::read_to_string(&head_path).ok()?;
+    let head = head_raw.trim();
+
+    let (sha, branch) = if let Some(ref_path) = head.strip_prefix("ref: ") {
+        let branch_name = ref_path.strip_prefix("refs/heads/").unwrap_or(ref_path);
+        let ref_file = git_dir.join(ref_path);
+        let sha_val = std::fs::read_to_string(&ref_file)
+            .ok()
+            .map(|s| s.trim().to_string())
+            .or_else(|| {
+                // Fallback: use git CLI
+                Command::new("git")
+                    .args(["rev-parse", "HEAD"])
+                    .output()
+                    .ok()
+                    .and_then(|o| {
+                        if o.status.success() {
+                            String::from_utf8(o.stdout)
+                                .ok()
+                                .map(|s| s.trim().to_string())
+                        } else {
+                            None
+                        }
+                    })
+            })?;
+        (sha_val, branch_name.to_string())
+    } else {
+        // Detached HEAD — SHA directly in HEAD file
+        (head.to_string(), "HEAD".to_string())
+    };
+
+    // Check dirty: `git status --porcelain`
+    let dirty = Command::new("git")
+        .args(["status", "--porcelain"])
+        .output()
+        .ok()
+        .map(|o| !o.stdout.is_empty())
+        .unwrap_or(false);
+
+    // Commit message
+    let message = Command::new("git")
+        .args(["log", "-1", "--format=%s"])
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_default();
+
+    Some(GitInfo {
+        sha,
+        branch,
+        message,
+        dirty,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -48,6 +129,17 @@ mod tests {
         let s = now_iso();
         assert!(s.len() == 20, "expected ISO format, got: {s}");
         assert!(s.ends_with('Z'));
+    }
+
+    #[test]
+    fn test_capture_git_info() {
+        // Should work in our own repo during tests
+        let info = capture_git_info();
+        assert!(info.is_some(), "expected git info in repo checkout");
+        let info = info.unwrap();
+        assert!(!info.sha.is_empty(), "SHA should be non-empty");
+        assert!(!info.branch.is_empty(), "branch should be non-empty");
+        assert!(!info.message.is_empty(), "message should be non-empty");
     }
 
     #[test]

@@ -8,7 +8,9 @@ pub mod rebuild;
 pub mod resume;
 pub mod store;
 
+#[expect(unused_imports)]
 pub use diff::{DiffKind, TaskDiff, diff_tasks};
+#[expect(unused_imports)]
 pub use export::ExportFormat;
 
 use serde::{Deserialize, Serialize};
@@ -120,6 +122,7 @@ impl TaskStorage {
     }
 
     /// Path to the queue file.
+    #[expect(dead_code)]
     pub fn queue_path(&self) -> PathBuf {
         self.base_dir.join("queued.json")
     }
@@ -175,6 +178,7 @@ pub fn summarize(results: &[crate::types::ResponseResult]) -> ResultSummary {
 }
 
 /// Format a duration in seconds to human-friendly string.
+#[expect(dead_code)]
 pub fn fmt_duration(secs: f64) -> String {
     if secs < 60.0 {
         format!("{secs:.1}s")

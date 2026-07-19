@@ -18,6 +18,7 @@ struct ShodanSearchResponse {
     #[serde(default)]
     matches: Vec<ShodanMatch>,
     #[serde(default)]
+    #[expect(dead_code)]
     total: usize,
 }
 
@@ -26,8 +27,10 @@ struct ShodanMatch {
     #[serde(default)]
     hostnames: Vec<String>,
     #[serde(default)]
+    #[expect(dead_code)]
     ip_str: String,
     #[serde(default)]
+    #[expect(dead_code)]
     port: u16,
     #[serde(default)]
     http: Option<ShodanHttp>,

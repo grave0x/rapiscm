@@ -2,7 +2,7 @@
 
 use std::fs;
 
-use super::{GitInfo, TaskId, TaskMeta, TaskStorage};
+use super::{TaskId, TaskMeta, TaskStorage};
 use crate::types::{ResponseResult, Severity};
 
 /// Export formats.

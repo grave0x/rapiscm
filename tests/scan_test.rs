@@ -49,6 +49,7 @@ fn base_config(port: u16) -> ScanConfig {
         no_bodies: false,
         raw: false,
         task_dir: None,
+        git: false,
     }
 }
 
