@@ -1,3 +1,5 @@
+//! Endpoint and result filtering based on scan configuration.
+
 /// Filter engine — applies include/exclude rules to endpoints and results.
 use crate::config::ScanConfig;
 use crate::fuzz::matcher::Range;
@@ -146,6 +148,7 @@ mod tests {
             task_dir: None,
             resume: None,
             git: false,
+            report: None,
         }
     }
 

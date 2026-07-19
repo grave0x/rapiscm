@@ -1,4 +1,8 @@
+//! Report formatting dispatcher (table, JSON, markdown).
+//! Also includes the static HTML site generator.
+
 pub mod json;
+pub mod site;
 pub mod summary;
 pub mod table;
 

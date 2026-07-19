@@ -1,3 +1,5 @@
+//! CLI entry point. Dispatches to subcommand handlers.
+
 mod analytics;
 mod check;
 mod cli;
@@ -364,6 +366,14 @@ async fn main() -> anyhow::Result<()> {
             };
             let output = report::format_results(&results, config.output);
             println!("{output}");
+
+            // --report: generate static HTML reports
+            if let Some(ref report_name) = g.report {
+                match report::site::generate(&results, report_name) {
+                    Ok(path) => tracing::info!("Reports saved to {}", path.display()),
+                    Err(e) => tracing::warn!("Failed to generate reports: {e}"),
+                }
+            }
 
             // --save: persist scan results as a task
             if config.save {
