@@ -66,10 +66,7 @@ impl TaskStorage {
             fs::create_dir_all(&raw_dir).map_err(|e| e.to_string())?;
             for (i, r) in results.iter().enumerate() {
                 let method = r.endpoint_method.to_lowercase();
-                let safe_url = r
-                    .endpoint_url
-                    .replace(['/', '?', '&'], "_")
-                    .replace("://", "_");
+                let safe_url = r.endpoint_url.replace(['/', '?', '&'], "_").replace("://", "_");
                 let fname = format!("{i:05}_{method}_{safe_url}.json");
                 let entry = serde_json::json!({
                     "method": r.endpoint_method,
@@ -413,9 +410,7 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
         let storage = TaskStorage::new(Some(dir.clone()));
         for i in 1..=3 {
-            storage
-                .save(&sample_meta(i), &sample_results(), false, false)
-                .unwrap();
+            storage.save(&sample_meta(i), &sample_results(), false, false).unwrap();
         }
         let removed = storage.prune(5).unwrap();
         assert_eq!(removed, 0);

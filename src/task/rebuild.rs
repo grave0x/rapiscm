@@ -51,10 +51,7 @@ pub async fn rebuild(
         .collect();
 
     // Scan only the retry endpoints.
-    let retry_endpoints: Vec<crate::types::Endpoint> = retry_indices
-        .iter()
-        .map(|&i| endpoints[i].clone())
-        .collect();
+    let retry_endpoints: Vec<crate::types::Endpoint> = retry_indices.iter().map(|&i| endpoints[i].clone()).collect();
 
     let new_results = runner.run(retry_endpoints).await;
 
@@ -89,9 +86,7 @@ pub async fn rebuild(
         },
         exit_code: 0,
     };
-    storage
-        .save(&new_meta, &merged, false, false)
-        .map_err(Error::Task)?;
+    storage.save(&new_meta, &merged, false, false).map_err(Error::Task)?;
 
     Ok(new_id)
 }

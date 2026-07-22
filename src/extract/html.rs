@@ -50,8 +50,7 @@ mod tests {
     #[test]
     fn test_skips_mailto() {
         let base = Url::parse("https://example.com/page").unwrap();
-        let html =
-            "<a href=\"mailto:user@x.com\">Email</a> <a href=\"https://other.com\">Other</a>";
+        let html = "<a href=\"mailto:user@x.com\">Email</a> <a href=\"https://other.com\">Other</a>";
         let urls = extract_html(html, &base);
         assert_eq!(urls.len(), 1);
         assert!(urls[0].as_str().contains("other.com"));

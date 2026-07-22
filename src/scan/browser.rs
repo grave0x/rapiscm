@@ -36,10 +36,7 @@ pub async fn discover(
 }
 
 /// Evaluate JS in the page and deserialize the result.
-async fn eval_js<T: serde::de::DeserializeOwned>(
-    page: &chromiumoxide::Page,
-    js: &str,
-) -> anyhow::Result<T> {
+async fn eval_js<T: serde::de::DeserializeOwned>(page: &chromiumoxide::Page, js: &str) -> anyhow::Result<T> {
     let result = page.evaluate(js).await?;
     Ok(result.into_value()?)
 }
@@ -51,11 +48,7 @@ async fn page_html(page: &chromiumoxide::Page) -> anyhow::Result<String> {
 
 // ── Chrome ──────────────────────────────────────────────────────────────
 
-async fn discover_chrome(
-    url: &reqwest::Url,
-    headed: bool,
-    proxy: Option<&str>,
-) -> anyhow::Result<Vec<reqwest::Url>> {
+async fn discover_chrome(url: &reqwest::Url, headed: bool, proxy: Option<&str>) -> anyhow::Result<Vec<reqwest::Url>> {
     use chromiumoxide::{Browser, BrowserConfig};
 
     let mut cfg = BrowserConfig::builder();
@@ -65,8 +58,7 @@ async fn discover_chrome(
     if let Some(p) = proxy {
         cfg = cfg.arg(format!("--proxy-server={p}"));
     }
-    let (browser, mut handler) =
-        Browser::launch(cfg.build().map_err(|e| anyhow::anyhow!("{e}"))?).await?;
+    let (browser, mut handler) = Browser::launch(cfg.build().map_err(|e| anyhow::anyhow!("{e}"))?).await?;
 
     tokio::spawn(async move { while let Some(_) = handler.next().await {} });
 
@@ -123,8 +115,7 @@ pub async fn screenshot(
     if let Some(p) = proxy {
         cfg = cfg.arg(format!("--proxy-server={p}"));
     }
-    let (browser, mut handler) =
-        Browser::launch(cfg.build().map_err(|e| anyhow::anyhow!("{e}"))?).await?;
+    let (browser, mut handler) = Browser::launch(cfg.build().map_err(|e| anyhow::anyhow!("{e}"))?).await?;
     tokio::spawn(async move { while let Some(_) = handler.next().await {} });
 
     let page = browser.new_page("about:blank").await?;
@@ -177,8 +168,7 @@ async fn eval_chrome(
     if let Some(p) = proxy {
         cfg = cfg.arg(format!("--proxy-server={p}"));
     }
-    let (browser, mut handler) =
-        Browser::launch(cfg.build().map_err(|e| anyhow::anyhow!("{e}"))?).await?;
+    let (browser, mut handler) = Browser::launch(cfg.build().map_err(|e| anyhow::anyhow!("{e}"))?).await?;
     tokio::spawn(async move { while let Some(_) = handler.next().await {} });
 
     let page = browser.new_page("about:blank").await?;
@@ -234,9 +224,7 @@ async fn eval_firefox(
 ) -> anyhow::Result<Vec<reqwest::Url>> {
     use fantoccini::ClientBuilder;
 
-    let client = ClientBuilder::native()
-        .connect("http://localhost:4444")
-        .await?;
+    let client = ClientBuilder::native().connect("http://localhost:4444").await?;
 
     if !headed {
         warn!("firefox headless requires geckodriver with --connect-existing");
@@ -279,11 +267,7 @@ async fn find_links(page: &chromiumoxide::Page, base: &reqwest::Url) -> Vec<reqw
 }
 
 /// Collect form action URLs.
-async fn collect_form_urls(
-    page: &chromiumoxide::Page,
-    base: &reqwest::Url,
-    out: &mut Vec<reqwest::Url>,
-) {
+async fn collect_form_urls(page: &chromiumoxide::Page, base: &reqwest::Url, out: &mut Vec<reqwest::Url>) {
     let js = r#"
         Array.from(document.forms).map(f => ({
             action: f.action,
@@ -306,16 +290,10 @@ async fn collect_form_urls(
 
 // ── Firefox ─────────────────────────────────────────────────────────────
 
-async fn discover_firefox(
-    url: &reqwest::Url,
-    headed: bool,
-    _proxy: Option<&str>,
-) -> anyhow::Result<Vec<reqwest::Url>> {
+async fn discover_firefox(url: &reqwest::Url, headed: bool, _proxy: Option<&str>) -> anyhow::Result<Vec<reqwest::Url>> {
     use fantoccini::ClientBuilder;
 
-    let client = ClientBuilder::native()
-        .connect("http://localhost:4444")
-        .await?;
+    let client = ClientBuilder::native().connect("http://localhost:4444").await?;
 
     if !headed {
         warn!("firefox headless requires geckodriver with --connect-existing");
@@ -355,10 +333,7 @@ async fn discover_firefox(
 async fn find_firefox_links(client: &fantoccini::Client, base: &reqwest::Url) -> Vec<reqwest::Url> {
     use fantoccini::Locator;
 
-    let elements = client
-        .find_all(Locator::Css("a[href]"))
-        .await
-        .unwrap_or_default();
+    let elements = client.find_all(Locator::Css("a[href]")).await.unwrap_or_default();
     let mut urls = Vec::new();
     for el in elements {
         if let Ok(Some(href)) = el.attr("href").await {

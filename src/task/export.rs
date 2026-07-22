@@ -14,12 +14,7 @@ pub enum ExportFormat {
 }
 
 /// Export a task to a file.
-pub fn export(
-    storage: &TaskStorage,
-    id: TaskId,
-    format: ExportFormat,
-    output: &std::path::Path,
-) -> Result<(), String> {
+pub fn export(storage: &TaskStorage, id: TaskId, format: ExportFormat, output: &std::path::Path) -> Result<(), String> {
     let meta = storage.load_meta(id)?;
     let results = storage.load_results(id)?;
 
@@ -168,13 +163,7 @@ fn to_html(meta: &TaskMeta, results: &[ResponseResult]) -> String {
             .unwrap_or_default();
         rows.push_str(&format!(
             "<tr class=\"{}\"><td>{}</td><td>{}</td><td>{}</td><td>{}ms</td><td>{}{}</td></tr>",
-            cls,
-            r.endpoint_method,
-            r.endpoint_url,
-            r.status_code,
-            r.response_time_ms,
-            checks_html,
-            err_html
+            cls, r.endpoint_method, r.endpoint_url, r.status_code, r.response_time_ms, checks_html, err_html
         ));
     }
 

@@ -73,9 +73,7 @@ pub fn apply_pipe(script_path: &str, results: &mut [ResponseResult]) -> Result<(
             let _ = stdin.write_all(input_json.as_bytes());
         }
 
-        let output = child
-            .wait_with_output()
-            .map_err(|e| format!("script error: {e}"))?;
+        let output = child.wait_with_output().map_err(|e| format!("script error: {e}"))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);

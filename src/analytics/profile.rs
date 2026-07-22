@@ -86,10 +86,7 @@ pub fn reconstruct_profile(headers: &[(String, String)]) -> DeviceProfile {
             profile.os = os;
 
             // Detect headless browsers by UA patterns
-            if value.contains("HeadlessChrome")
-                || value.contains("PhantomJS")
-                || value.contains("Headless")
-            {
+            if value.contains("HeadlessChrome") || value.contains("PhantomJS") || value.contains("Headless") {
                 profile.likely_bot = true;
             }
         }
@@ -176,8 +173,7 @@ mod tests {
 
     #[test]
     fn test_parse_firefox_ua() {
-        let ua =
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:127.0) Gecko/20100101 Firefox/127.0";
+        let ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:127.0) Gecko/20100101 Firefox/127.0";
         let (browser, os) = parse_ua(ua);
         assert_eq!(browser.as_deref(), Some("Firefox"));
         assert_eq!(os.as_deref(), Some("macOS"));

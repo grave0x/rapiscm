@@ -193,10 +193,7 @@ mod tests {
     #[test]
     fn test_baseline_filter() {
         let config = MatchConfig {
-            baseline: Some(Baseline {
-                status: 404,
-                size: 50,
-            }),
+            baseline: Some(Baseline { status: 404, size: 50 }),
             ..Default::default()
         };
         assert!(!config.evaluate(&sample_result(404, 50))); // filtered as baseline

@@ -30,13 +30,7 @@ pub fn extract_js(js: &str, base: &Url) -> Vec<Url> {
         for (i, _) in js.match_indices(prefix) {
             let end = js[i..]
                 .find(|c: char| {
-                    c.is_whitespace()
-                        || c == '"'
-                        || c == '\''
-                        || c == '`'
-                        || c == ')'
-                        || c == '}'
-                        || c == ']'
+                    c.is_whitespace() || c == '"' || c == '\'' || c == '`' || c == ')' || c == '}' || c == ']'
                 })
                 .map(|e| i + e)
                 .unwrap_or(js.len());
@@ -74,10 +68,7 @@ fn find_str_args(js: &str, prefix: &str, out: &mut Vec<Url>, base: &Url) {
 
 fn find_str_after(js: &str, marker: &str, out: &mut Vec<Url>, base: &Url) {
     for quote in ['"', '\'', '`'] {
-        for pattern in &[
-            format!("{}{}", marker, quote),
-            format!("{} = {}", marker, quote),
-        ] {
+        for pattern in &[format!("{}{}", marker, quote), format!("{} = {}", marker, quote)] {
             for (i, _) in js.match_indices(pattern) {
                 let start = i + pattern.len();
                 if let Some(end) = js[start..].find(quote) {
@@ -130,9 +121,6 @@ mod tests {
         let base = Url::parse("https://example.com").unwrap();
         let js = r#"const URL = "https://api.example.com/v3";"#;
         let urls = extract_js(js, &base);
-        assert!(
-            urls.iter()
-                .any(|u| u.as_str().contains("api.example.com/v3"))
-        );
+        assert!(urls.iter().any(|u| u.as_str().contains("api.example.com/v3")));
     }
 }

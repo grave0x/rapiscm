@@ -14,10 +14,7 @@ use crate::scan::runner::ScanRunner;
 use crate::types::{Endpoint, ResponseResult, Target};
 
 /// Build an HTTP client from config (proxy, timeout, TLS, redirects).
-fn build_client(
-    config: &ScanConfig,
-    mut ghost: Option<&mut GhostState>,
-) -> Result<reqwest::Client> {
+fn build_client(config: &ScanConfig, mut ghost: Option<&mut GhostState>) -> Result<reqwest::Client> {
     let mut builder = reqwest::Client::builder()
         .timeout(config.timeout)
         .danger_accept_invalid_certs(config.insecure)
@@ -206,12 +203,9 @@ pub async fn run_url_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
                     }
                 }
 
-                let links =
-                    extract::extract_from_response(&body, &content_type, &base_url, &resp_headers);
+                let links = extract::extract_from_response(&body, &content_type, &base_url, &resp_headers);
                 for link in links {
-                    if parser::url::is_api_endpoint(&link)
-                        && parser::url::same_origin(&link, &base_url)
-                    {
+                    if parser::url::is_api_endpoint(&link) && parser::url::same_origin(&link, &base_url) {
                         discovered.push(link);
                     }
                 }
@@ -234,10 +228,7 @@ pub async fn run_url_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
             ghost_state.config.is_active().then_some(&mut ghost_state),
         )
         .await;
-        info!(
-            "crawl complete: {} total API endpoints found",
-            discovered.len()
-        );
+        info!("crawl complete: {} total API endpoints found", discovered.len());
     }
 
     // Step 2: optional browser-based interactive discovery.
@@ -245,14 +236,7 @@ pub async fn run_url_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
     {
         info!("running browser discovery...");
         let proxy = ghost_state.next_proxy().or_else(|| config.proxy.clone());
-        match crate::scan::browser::discover(
-            &base_url,
-            config.browser_kind,
-            config.headed,
-            proxy.as_deref(),
-        )
-        .await
-        {
+        match crate::scan::browser::discover(&base_url, config.browser_kind, config.headed, proxy.as_deref()).await {
             Ok(browser_urls) => {
                 let before = discovered.len();
                 for u in browser_urls {
@@ -285,10 +269,7 @@ pub async fn run_url_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
                     discovered.push(u);
                 }
             }
-            info!(
-                "browser eval added {} new endpoints",
-                discovered.len() - before
-            );
+            info!("browser eval added {} new endpoints", discovered.len() - before);
         }
     }
 
@@ -312,10 +293,7 @@ pub async fn run_url_scan(config: &ScanConfig) -> Result<Vec<ResponseResult>> {
                 return true;
             }
             let p = url.path();
-            config
-                .paths
-                .iter()
-                .any(|pat| p.starts_with(pat) || p == pat)
+            config.paths.iter().any(|pat| p.starts_with(pat) || p == pat)
         })
         .map(|url| {
             let mut headers = config.headers.clone();

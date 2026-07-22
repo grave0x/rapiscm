@@ -87,14 +87,8 @@ pub fn detect_exports(body: &str, headers: &[(String, String)]) -> Vec<DataExpor
         if let Some(pos) = lower.find("domain=") {
             let rest = &lower[pos + 7..];
             let domain = rest.split([';', ' ', ',']).next().unwrap_or("");
-            if !domain.is_empty()
-                && !domain.contains(".example.com")
-                && !domain.contains(".localhost")
-            {
-                exports.push(domain_to_export(
-                    domain.to_string(),
-                    ExportMethod::CookieDomain,
-                ));
+            if !domain.is_empty() && !domain.contains(".example.com") && !domain.contains(".localhost") {
+                exports.push(domain_to_export(domain.to_string(), ExportMethod::CookieDomain));
             }
         }
     }
@@ -233,12 +227,7 @@ impl<'a> Iterator for SrcMatches<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         // Handle src="URL" patterns
-        for marker in &[
-            "src=\"https://",
-            "src=\"http://",
-            "src='https://",
-            "src='http://",
-        ] {
+        for marker in &["src=\"https://", "src=\"http://", "src='https://", "src='http://"] {
             if let Some(start) = self.text[self.pos..].find(marker) {
                 let val_start = self.pos + start + marker.len();
                 // Find closing quote of the same type
@@ -271,14 +260,9 @@ mod tests {
 
     #[test]
     fn test_detect_script_src() {
-        let body =
-            r#"<html><script src="https://www.google-analytics.com/analytics.js"></script></html>"#;
+        let body = r#"<html><script src="https://www.google-analytics.com/analytics.js"></script></html>"#;
         let exports = detect_exports(body, &[]);
-        assert!(
-            exports
-                .iter()
-                .any(|e| e.domain.contains("google-analytics.com"))
-        );
+        assert!(exports.iter().any(|e| e.domain.contains("google-analytics.com")));
     }
 
     #[test]
@@ -292,19 +276,12 @@ mod tests {
     fn test_detect_send_beacon() {
         let body = r#"navigator.sendBeacon('https://analytics.example.com/collect', data)"#;
         let exports = detect_exports(body, &[]);
-        assert!(
-            exports
-                .iter()
-                .any(|e| e.domain.contains("analytics.example.com"))
-        );
+        assert!(exports.iter().any(|e| e.domain.contains("analytics.example.com")));
     }
 
     #[test]
     fn test_detect_cookie_domain() {
-        let headers = vec![(
-            "Set-Cookie".into(),
-            "_ga=GA1.2.abc; domain=.doubleclick.net".into(),
-        )];
+        let headers = vec![("Set-Cookie".into(), "_ga=GA1.2.abc; domain=.doubleclick.net".into())];
         let exports = detect_exports("", &headers);
         assert!(exports.iter().any(|e| e.domain.contains("doubleclick.net")));
     }
@@ -313,11 +290,7 @@ mod tests {
     fn test_service_name_enrichment() {
         let body = r#"<script src="https://www.googletagmanager.com/gtag/js"></script>"#;
         let exports = detect_exports(body, &[]);
-        assert!(
-            exports
-                .iter()
-                .any(|e| e.service_name == Some("Google Tag Manager"))
-        );
+        assert!(exports.iter().any(|e| e.service_name == Some("Google Tag Manager")));
     }
 
     #[test]

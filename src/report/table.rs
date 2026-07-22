@@ -145,10 +145,7 @@ fn format_tags_md(tags: &[String]) -> String {
     if tags.is_empty() {
         return "-".into();
     }
-    tags.iter()
-        .map(|t| format!("`{t}`"))
-        .collect::<Vec<_>>()
-        .join("<br>")
+    tags.iter().map(|t| format!("`{t}`")).collect::<Vec<_>>().join("<br>")
 }
 
 fn format_checks_md(checks: &[crate::types::Check]) -> String {
@@ -286,8 +283,18 @@ mod tests {
     #[test]
     fn test_format_checks() {
         let checks = vec![
-            Check { name: "CSP".into(), passed: true, severity: Severity::Info, message: "ok".into() },
-            Check { name: "HSTS".into(), passed: false, severity: Severity::Warn, message: "missing".into() },
+            Check {
+                name: "CSP".into(),
+                passed: true,
+                severity: Severity::Info,
+                message: "ok".into(),
+            },
+            Check {
+                name: "HSTS".into(),
+                passed: false,
+                severity: Severity::Warn,
+                message: "missing".into(),
+            },
         ];
         let out = format_checks(&checks);
         assert!(out.contains("CSP"));

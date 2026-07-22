@@ -11,10 +11,7 @@ use crate::error::{Error, Result};
 /// Search RDAP for domains/IPs associated with an organization.
 /// Returns a list of domain-like names and network names extracted from RDAP data.
 pub async fn rdap_discover(org: &str) -> Result<Vec<String>> {
-    let url = format!(
-        "https://rdap.arin.net/registry/entities?fn={}",
-        urlencoding(org)
-    );
+    let url = format!("https://rdap.arin.net/registry/entities?fn={}", urlencoding(org));
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
@@ -24,14 +21,10 @@ pub async fn rdap_discover(org: &str) -> Result<Vec<String>> {
             detail: e.to_string(),
         })?;
 
-    let resp = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| Error::DiscoveryHttp {
-            src: "rdap",
-            detail: format!("HTTP request: {e}"),
-        })?;
+    let resp = client.get(&url).send().await.map_err(|e| Error::DiscoveryHttp {
+        src: "rdap",
+        detail: format!("HTTP request: {e}"),
+    })?;
 
     // ARIN RDAP returns 200 with empty list if no results
     if !resp.status().is_success() {
@@ -163,11 +156,7 @@ async fn fetch_network_names(client: &reqwest::Client, href: &str) -> Result<Opt
         }
     }
 
-    if names.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(names))
-    }
+    if names.is_empty() { Ok(None) } else { Ok(Some(names)) }
 }
 
 fn urlencoding(s: &str) -> String {

@@ -23,8 +23,7 @@ pub fn generate(results: &[ResponseResult], name: &str) -> Result<PathBuf, Strin
 
     // ── API documentation site ──
     let docs_index = build_docs_index(results, name);
-    fs::write(docs_dir.join("index.html"), &docs_index)
-        .map_err(|e| format!("write docs index: {e}"))?;
+    fs::write(docs_dir.join("index.html"), &docs_index).map_err(|e| format!("write docs index: {e}"))?;
 
     for (i, r) in results.iter().enumerate() {
         let page = build_endpoint_page(r, i, results.len(), name);
@@ -34,8 +33,7 @@ pub fn generate(results: &[ResponseResult], name: &str) -> Result<PathBuf, Strin
 
     // ── Security audit report ──
     let audit = build_security_audit(results, name);
-    fs::write(base.join("security-audit.html"), &audit)
-        .map_err(|e| format!("write security audit: {e}"))?;
+    fs::write(base.join("security-audit.html"), &audit).map_err(|e| format!("write security audit: {e}"))?;
 
     tracing::info!("Reports generated in {}", base.display());
     Ok(base)
@@ -133,10 +131,7 @@ fn build_docs_index(results: &[ResponseResult], name: &str) -> String {
         .sum();
 
     let mut body = String::new();
-    let _ = write!(
-        body,
-        r#"<h1>API Documentation</h1><p class="subtitle">{name}</p>"#
-    );
+    let _ = write!(body, r#"<h1>API Documentation</h1><p class="subtitle">{name}</p>"#);
 
     // Summary cards
     let _ = write!(
@@ -192,9 +187,7 @@ fn check_summary(checks: &[Check]) -> String {
     if checks.is_empty() {
         "—".into()
     } else {
-        format!(
-            r#"<span class="check-pass">{passed}P</span> <span class="check-fail">{failed}F</span>"#
-        )
+        format!(r#"<span class="check-pass">{passed}P</span> <span class="check-fail">{failed}F</span>"#)
     }
 }
 
@@ -286,10 +279,7 @@ fn build_endpoint_page(r: &ResponseResult, idx: usize, total: usize, name: &str)
 
     // Headers
     if !r.response_headers.is_empty() {
-        let _ = write!(
-            body,
-            r#"<div class="detail-label">Response Headers</div><pre>"#
-        );
+        let _ = write!(body, r#"<div class="detail-label">Response Headers</div><pre>"#);
         for (k, v) in &r.response_headers {
             let _ = writeln!(body, "{}: {}", html_escape(k), html_escape(v));
         }
@@ -300,11 +290,7 @@ fn build_endpoint_page(r: &ResponseResult, idx: usize, total: usize, name: &str)
     if !r.response_body.is_empty() {
         let preview_len = r.response_body.len().min(2048);
         let preview = String::from_utf8_lossy(&r.response_body[..preview_len]);
-        let truncated = if r.response_body.len() > 2048 {
-            "..."
-        } else {
-            ""
-        };
+        let truncated = if r.response_body.len() > 2048 { "..." } else { "" };
         let _ = write!(
             body,
             r#"<div class="detail-label">Body Preview ({size} bytes)</div><pre>{preview}{truncated}</pre>"#,
@@ -314,10 +300,7 @@ fn build_endpoint_page(r: &ResponseResult, idx: usize, total: usize, name: &str)
 
     // Trackers
     if !r.trackers.is_empty() {
-        let _ = write!(
-            body,
-            r#"<div class="detail-label">Trackers Detected</div><ul>"#
-        );
+        let _ = write!(body, r#"<div class="detail-label">Trackers Detected</div><ul>"#);
         for t in &r.trackers {
             let domains_str = t.domains.join(", ");
             let _ = writeln!(
@@ -348,11 +331,7 @@ fn build_endpoint_page(r: &ResponseResult, idx: usize, total: usize, name: &str)
         let _ = writeln!(body, "</div>");
     }
 
-    page_html(
-        &format!("{} {}", r.endpoint_method, r.endpoint_url),
-        &body,
-        name,
-    )
+    page_html(&format!("{} {}", r.endpoint_method, r.endpoint_url), &body, name)
 }
 
 // ── Security audit report ──
@@ -381,20 +360,14 @@ fn build_security_audit(results: &[ResponseResult], name: &str) -> String {
                 .count()
         })
         .sum();
-    let endpoints_with_fails = results
-        .iter()
-        .filter(|r| r.checks.iter().any(|c| !c.passed))
-        .count();
+    let endpoints_with_fails = results.iter().filter(|r| r.checks.iter().any(|c| !c.passed)).count();
     let endpoints_with_errors = results
         .iter()
         .filter(|r| r.status_code >= 500 || r.status_code == 0)
         .count();
 
     let mut body = String::new();
-    let _ = write!(
-        body,
-        r#"<h1>Security Audit Report</h1><p class="subtitle">{name}</p>"#
-    );
+    let _ = write!(body, r#"<h1>Security Audit Report</h1><p class="subtitle">{name}</p>"#);
 
     // Summary
     let _ = write!(
@@ -448,10 +421,7 @@ fn build_security_audit(results: &[ResponseResult], name: &str) -> String {
     // Endpoints with errors
     if endpoints_with_errors > 0 {
         let _ = writeln!(body, r#"<h2>Endpoints with Errors</h2><ul>"#);
-        for r in results
-            .iter()
-            .filter(|r| r.status_code >= 500 || r.status_code == 0)
-        {
+        for r in results.iter().filter(|r| r.status_code >= 500 || r.status_code == 0) {
             let _ = writeln!(
                 body,
                 r#"<li><span class="code">{}</span> — {} ({})</li>"#,

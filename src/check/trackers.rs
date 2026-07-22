@@ -32,11 +32,7 @@ pub fn check_cookies(headers: &[(String, String)]) -> Vec<Check> {
             name: format!("cookie:{}", cookie_name),
             passed: false,
             severity: Severity::Info,
-            message: format!(
-                "Cookie '{}' classified as {}",
-                cookie_name,
-                purpose.as_str()
-            ),
+            message: format!("Cookie '{}' classified as {}", cookie_name, purpose.as_str()),
         });
 
         // Security flag analysis

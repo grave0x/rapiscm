@@ -28,59 +28,28 @@ pub struct FuzzOpts {
 }
 
 /// Run a fuzz scan: load wordlist, build matcher, run fuzzer, print results.
-pub async fn run_fuzz_scan(
-    base_url: &reqwest::Url,
-    opts: &FuzzOpts,
-    scan_config: &ScanConfig,
-) -> anyhow::Result<()> {
+pub async fn run_fuzz_scan(base_url: &reqwest::Url, opts: &FuzzOpts, scan_config: &ScanConfig) -> anyhow::Result<()> {
     let words = load_words(&opts.wordlist);
     let matcher = MatchConfig {
-        match_status: opts
-            .mc
-            .as_ref()
-            .map(|s| parse_range_list(s))
-            .unwrap_or_default(),
-        filter_status: opts
-            .fc
-            .as_ref()
-            .map(|s| parse_range_list(s))
-            .unwrap_or_default(),
-        match_size: opts
-            .ms
-            .as_ref()
-            .map(|s| parse_range_list(s))
-            .unwrap_or_default(),
-        filter_size: opts
-            .fs
-            .as_ref()
-            .map(|s| parse_range_list(s))
-            .unwrap_or_default(),
+        match_status: opts.mc.as_ref().map(|s| parse_range_list(s)).unwrap_or_default(),
+        filter_status: opts.fc.as_ref().map(|s| parse_range_list(s)).unwrap_or_default(),
+        match_size: opts.ms.as_ref().map(|s| parse_range_list(s)).unwrap_or_default(),
+        filter_size: opts.fs.as_ref().map(|s| parse_range_list(s)).unwrap_or_default(),
         match_regex: opts.mr.clone(),
         filter_regex: opts.fr.clone(),
         baseline: if opts.ac {
-            Some(Baseline {
-                status: 404,
-                size: 50,
-            })
+            Some(Baseline { status: 404, size: 50 })
         } else {
             None
         },
     };
     let runner = FuzzRunner::new(scan_config)?;
-    let keyword = if opts.keyword.is_empty() {
-        "FUZZ"
-    } else {
-        &opts.keyword
-    };
+    let keyword = if opts.keyword.is_empty() { "FUZZ" } else { &opts.keyword };
 
     let results = match opts.mode.as_str() {
         "param" => runner.fuzz_params(base_url, &words, &matcher, keyword).await,
         "method" => runner.fuzz_methods(base_url, &words, &matcher, keyword).await,
-        "header" => {
-            runner
-                .fuzz_headers(base_url, &words, &matcher, keyword)
-                .await
-        }
+        "header" => runner.fuzz_headers(base_url, &words, &matcher, keyword).await,
         "body" => {
             runner
                 .fuzz_bodies(base_url, &words, &matcher, keyword, opts.request.as_deref())
@@ -119,8 +88,5 @@ fn load_words(wordlist_path: &Option<String>) -> Vec<String> {
 }
 
 fn builtin_words() -> Vec<String> {
-    wordlist::api_paths()
-        .iter()
-        .map(|s| s.to_string())
-        .collect()
+    wordlist::api_paths().iter().map(|s| s.to_string()).collect()
 }

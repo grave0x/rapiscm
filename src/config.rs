@@ -75,9 +75,7 @@ pub struct ScanConfig {
 /// Validate config values and log warnings for suspicious settings.
 fn validate_config(rate_limit: u64, timeout: u64, concurrency: usize, jitter_pct: u32) {
     if rate_limit > 1000 {
-        tracing::warn!(
-            "rate_limit={rate_limit} is very high — may trigger rate limiting on target"
-        );
+        tracing::warn!("rate_limit={rate_limit} is very high — may trigger rate limiting on target");
     }
     if rate_limit == 0 {
         tracing::warn!("rate_limit=0 means unlimited requests — use with caution");
@@ -89,9 +87,7 @@ fn validate_config(rate_limit: u64, timeout: u64, concurrency: usize, jitter_pct
         tracing::warn!("concurrency={concurrency} is very high — may overwhelm target");
     }
     if jitter_pct > 80 {
-        tracing::warn!(
-            "jitter={jitter_pct}% is very high — request timing will vary significantly"
-        );
+        tracing::warn!("jitter={jitter_pct}% is very high — request timing will vary significantly");
     }
 }
 
@@ -101,12 +97,7 @@ impl ScanConfig {
         let headers = parse_headers(&global.headers)?;
         let auth = parse_auth(global.auth.as_deref())?;
         let output = parse_output(&global.output)?;
-        validate_config(
-            global.rate_limit,
-            global.timeout,
-            global.concurrency,
-            global.jitter,
-        );
+        validate_config(global.rate_limit, global.timeout, global.concurrency, global.jitter);
         Ok(ScanConfig {
             target,
             method: global.method.clone(),
@@ -389,17 +380,13 @@ mod tests {
     #[test]
     fn test_parse_auth_basic() {
         let result = parse_auth(Some("basic:admin:hunter2")).unwrap().unwrap();
-        assert!(
-            matches!(result, AuthConfig::Basic { ref username, ref password }
-            if username == "admin" && password == "hunter2")
-        );
+        assert!(matches!(result, AuthConfig::Basic { ref username, ref password }
+            if username == "admin" && password == "hunter2"));
     }
 
     #[test]
     fn test_parse_auth_header() {
-        let result = parse_auth(Some("header:X-API-Key:secret123"))
-            .unwrap()
-            .unwrap();
+        let result = parse_auth(Some("header:X-API-Key:secret123")).unwrap().unwrap();
         assert!(matches!(result, AuthConfig::Header { ref name, ref value }
             if name == "X-API-Key" && value == "secret123"));
     }
@@ -441,16 +428,10 @@ mod tests {
 
     #[test]
     fn test_parse_headers() {
-        let raw = vec![
-            "Content-Type: application/json".into(),
-            "X-Custom: val".into(),
-        ];
+        let raw = vec!["Content-Type: application/json".into(), "X-Custom: val".into()];
         let result = parse_headers(&raw).unwrap();
         assert_eq!(result.len(), 2);
-        assert_eq!(
-            result[0],
-            ("Content-Type".into(), "application/json".into())
-        );
+        assert_eq!(result[0], ("Content-Type".into(), "application/json".into()));
     }
 
     #[test]

@@ -38,10 +38,7 @@ struct RawLine {
 /// timestamp if present, otherwise file order is preserved.
 ///
 /// `max_errors`: max malformed lines before returning an error.
-pub fn parse_session_file(
-    path: &Path,
-    max_errors: usize,
-) -> Result<(Vec<ResponseResult>, Vec<String>)> {
+pub fn parse_session_file(path: &Path, max_errors: usize) -> Result<(Vec<ResponseResult>, Vec<String>)> {
     let file = std::fs::File::open(path)?;
     let reader = std::io::BufReader::new(file);
     let mut results = Vec::new();
@@ -131,11 +128,7 @@ pub fn parse_session_file(
         };
 
         // Convert response_headers from HashMap to Vec<(String, String)>.
-        let response_headers: Vec<(String, String)> = raw
-            .response_headers
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
+        let response_headers: Vec<(String, String)> = raw.response_headers.unwrap_or_default().into_iter().collect();
 
         // Convert response_body: if present, try base64 decode, else use raw bytes.
         let response_body: Vec<u8> = match raw.response_body {
@@ -180,11 +173,7 @@ struct BASE64;
 impl BASE64 {
     fn decode(&self, input: &[u8]) -> std::result::Result<Vec<u8>, ()> {
         // Remove whitespace.
-        let input: Vec<u8> = input
-            .iter()
-            .copied()
-            .filter(|b| !b.is_ascii_whitespace())
-            .collect();
+        let input: Vec<u8> = input.iter().copied().filter(|b| !b.is_ascii_whitespace()).collect();
         if input.len() % 4 == 1 {
             return Err(()); // invalid length
         }

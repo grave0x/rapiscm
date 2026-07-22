@@ -76,19 +76,12 @@ pub async fn asn_discover(org: &str) -> Result<Vec<AsnResult>> {
         })?;
 
     // Search for matching ASNs
-    let search_url = format!(
-        "https://api.bgpview.io/search?query_term={}",
-        urlencoding(org)
-    );
+    let search_url = format!("https://api.bgpview.io/search?query_term={}", urlencoding(org));
 
-    let resp = client
-        .get(&search_url)
-        .send()
-        .await
-        .map_err(|e| Error::DiscoveryHttp {
-            src: "asn",
-            detail: format!("search: {e}"),
-        })?;
+    let resp = client.get(&search_url).send().await.map_err(|e| Error::DiscoveryHttp {
+        src: "asn",
+        detail: format!("search: {e}"),
+    })?;
 
     if !resp.status().is_success() {
         return Ok(Vec::new());
@@ -154,10 +147,7 @@ async fn sample_rdns(client: &reqwest::Client, cidr: &str) -> Option<Vec<String>
     for ip in &ips {
         // Use dns.google REST API for reverse DNS
         let ptr_name = ip.split('.').rev().collect::<Vec<_>>().join(".") + ".in-addr.arpa";
-        let url = format!(
-            "https://dns.google/resolve?name={}&type=PTR",
-            urlencoding(&ptr_name)
-        );
+        let url = format!("https://dns.google/resolve?name={}&type=PTR", urlencoding(&ptr_name));
 
         if let Ok(resp) = client.get(&url).send().await
             && let Ok(body) = resp.json::<serde_json::Value>().await
@@ -174,11 +164,7 @@ async fn sample_rdns(client: &reqwest::Client, cidr: &str) -> Option<Vec<String>
         }
     }
 
-    if domains.is_empty() {
-        None
-    } else {
-        Some(domains)
-    }
+    if domains.is_empty() { None } else { Some(domains) }
 }
 
 /// Sample up to `n` IP addresses from a CIDR range (just the first few).

@@ -16,8 +16,6 @@ pub async fn gaid_pivot(_org: &str, _api_key: Option<&str>) -> Result<Vec<String
         tracing::info!("GA-ID pivot skipped (no API key)");
         return Ok(vec![]);
     }
-    tracing::warn!(
-        "GA-ID pivot not implemented — needs external API integration (BuiltWith/SpyOnWeb)"
-    );
+    tracing::warn!("GA-ID pivot not implemented — needs external API integration (BuiltWith/SpyOnWeb)");
     Ok(vec![])
 }

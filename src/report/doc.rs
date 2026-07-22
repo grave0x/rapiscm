@@ -59,16 +59,8 @@ pub fn format_doc(results: &[ResponseResult]) -> String {
     // Security checks section
     out.push_str("\n## Security Checks\n\n");
     let total = results.len();
-    let passed = results
-        .iter()
-        .flat_map(|r| &r.checks)
-        .filter(|c| c.passed)
-        .count();
-    let failed = results
-        .iter()
-        .flat_map(|r| &r.checks)
-        .filter(|c| !c.passed)
-        .count();
+    let passed = results.iter().flat_map(|r| &r.checks).filter(|c| c.passed).count();
+    let failed = results.iter().flat_map(|r| &r.checks).filter(|c| !c.passed).count();
     out.push_str(&format!("- **Total endpoints:** {}\n", total));
     out.push_str(&format!("- **Checks passed:** {}\n", passed));
     out.push_str(&format!("- **Checks failed:** {}\n", failed));
@@ -104,10 +96,7 @@ pub fn format_doc(results: &[ResponseResult]) -> String {
     // Infrastructure notes
     out.push_str("\n## Infrastructure\n\n");
     out.push_str("- **Auth**: ");
-    if results
-        .iter()
-        .any(|r| r.status_code == 401 || r.status_code == 403)
-    {
+    if results.iter().any(|r| r.status_code == 401 || r.status_code == 403) {
         out.push_str("Authentication required (some endpoints return 401/403)\n");
     } else {
         out.push_str("No authentication observed\n");
@@ -129,11 +118,7 @@ pub fn format_doc(results: &[ResponseResult]) -> String {
     };
     out.push_str(&format!(
         "- **Observed status codes**: {}\n",
-        statuses
-            .iter()
-            .map(|c| c.to_string())
-            .collect::<Vec<_>>()
-            .join(", ")
+        statuses.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(", ")
     ));
 
     out
@@ -197,10 +182,7 @@ mod tests {
     #[test]
     fn test_extract_path() {
         assert_eq!(extract_path("https://example.com/api/users"), "/api/users");
-        assert_eq!(
-            extract_path("https://example.com/api?page=1"),
-            "/api?page=1"
-        );
+        assert_eq!(extract_path("https://example.com/api?page=1"), "/api?page=1");
     }
 
     #[test]

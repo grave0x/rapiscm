@@ -40,46 +40,22 @@ pub fn tag_endpoint(ep: &Endpoint) -> Tags {
     if path.contains("/admin") || path.contains("/administrator") {
         tags.push("admin".into());
     }
-    if path.contains("/health")
-        || path.contains("/healthz")
-        || path.contains("/readyz")
-        || path.contains("/ping")
-    {
+    if path.contains("/health") || path.contains("/healthz") || path.contains("/readyz") || path.contains("/ping") {
         tags.push("health".into());
     }
-    if path.contains("/auth")
-        || path.contains("/login")
-        || path.contains("/oauth")
-        || path.contains("/token")
-    {
+    if path.contains("/auth") || path.contains("/login") || path.contains("/oauth") || path.contains("/token") {
         tags.push("auth".into());
     }
-    if path.contains("/users")
-        || path.contains("/user")
-        || path.contains("/accounts")
-        || path.contains("/profile")
-    {
+    if path.contains("/users") || path.contains("/user") || path.contains("/accounts") || path.contains("/profile") {
         tags.push("users".into());
     }
-    if path.contains("/upload")
-        || path.contains("/download")
-        || path.contains("/export")
-        || path.contains("/import")
-    {
+    if path.contains("/upload") || path.contains("/download") || path.contains("/export") || path.contains("/import") {
         tags.push("file".into());
     }
-    if path.contains("/ws")
-        || path.contains("/websocket")
-        || path.contains("/socket.io")
-        || path.contains("/events")
-    {
+    if path.contains("/ws") || path.contains("/websocket") || path.contains("/socket.io") || path.contains("/events") {
         tags.push("websocket".into());
     }
-    if path.contains("/docs")
-        || path.contains("/swagger")
-        || path.contains("/openapi")
-        || path.contains("/api-docs")
-    {
+    if path.contains("/docs") || path.contains("/swagger") || path.contains("/openapi") || path.contains("/api-docs") {
         tags.push("docs".into());
     }
     if path.contains("/.env") || path.contains("/.git") {
@@ -122,14 +98,8 @@ pub fn tag_response(result: &ResponseResult) -> Tags {
     for check in &result.checks {
         if !check.passed {
             match check.severity {
-                Severity::Critical => tags.push(format!(
-                    "fail-{}",
-                    check.name.to_lowercase().replace(' ', "-")
-                )),
-                Severity::Warn => tags.push(format!(
-                    "warn-{}",
-                    check.name.to_lowercase().replace(' ', "-")
-                )),
+                Severity::Critical => tags.push(format!("fail-{}", check.name.to_lowercase().replace(' ', "-"))),
+                Severity::Warn => tags.push(format!("warn-{}", check.name.to_lowercase().replace(' ', "-"))),
                 Severity::Info => {}
             }
         }

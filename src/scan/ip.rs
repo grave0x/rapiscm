@@ -47,11 +47,7 @@ impl IpScanResult {
             .iter()
             .filter(|p| p.open)
             .map(|p| {
-                let svc = p
-                    .service
-                    .as_deref()
-                    .map(|s| format!(" ({s})"))
-                    .unwrap_or_default();
+                let svc = p.service.as_deref().map(|s| format!(" ({s})")).unwrap_or_default();
                 format!("{}{}", p.port, svc)
             })
             .collect::<Vec<_>>()
@@ -66,26 +62,19 @@ impl IpScanResult {
 
         format!(
             "{} — {} open ports ({:.0}ms): {}{}",
-            self.target,
-            self.open_count,
-            self.duration_ms,
-            ports,
-            os
+            self.target, self.open_count, self.duration_ms, ports, os
         )
     }
 }
 
 /// Default ports to scan (API-relevant + common services).
-pub const DEFAULT_PORTS: &[u16] = &[
-    22, 80, 443, 8080, 8443, 3000, 5000, 8000, 8080, 8443, 9000, 9090,
-];
+pub const DEFAULT_PORTS: &[u16] = &[22, 80, 443, 8080, 8443, 3000, 5000, 8000, 8080, 8443, 9000, 9090];
 
 /// Extended port set for thorough scans.
 pub const EXTENDED_PORTS: &[u16] = &[
-    21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445, 993, 995,
-    1433, 1521, 2049, 2375, 2376, 3000, 3306, 3389, 4000, 5000, 5432,
-    5601, 5900, 6379, 6443, 7000, 8000, 8080, 8081, 8443, 8888, 9000,
-    9090, 9200, 9300, 10250, 27017,
+    21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445, 993, 995, 1433, 1521, 2049, 2375, 2376, 3000, 3306,
+    3389, 4000, 5000, 5432, 5601, 5900, 6379, 6443, 7000, 8000, 8080, 8081, 8443, 8888, 9000, 9090, 9200, 9300, 10250,
+    27017,
 ];
 
 /// Run a TCP connect scan against a target host on the given ports.
@@ -97,7 +86,9 @@ pub fn scan_ports(target: &str, ports: &[u16], timeout: Duration) -> Vec<PortRes
         let start = std::time::Instant::now();
 
         match TcpStream::connect_timeout(
-            &addr_str.parse().unwrap_or_else(|_| SocketAddr::from(([127, 0, 0, 1], 0))),
+            &addr_str
+                .parse()
+                .unwrap_or_else(|_| SocketAddr::from(([127, 0, 0, 1], 0))),
             timeout,
         ) {
             Ok(mut stream) => {
@@ -131,9 +122,7 @@ pub fn scan_ports(target: &str, ports: &[u16], timeout: Duration) -> Vec<PortRes
 
 /// Try to read a banner from the open port.
 fn grab_banner(stream: &mut TcpStream, port: u16, timeout: Duration) -> Option<String> {
-    stream
-        .set_read_timeout(Some(timeout))
-        .ok()?;
+    stream.set_read_timeout(Some(timeout)).ok()?;
 
     // For HTTP ports, send a simple HTTP request
     let probe = if [80, 443, 8080, 8443, 3000, 5000, 8000, 9000, 9090].contains(&port) {
@@ -158,11 +147,7 @@ fn grab_banner(stream: &mut TcpStream, port: u16, timeout: Duration) -> Option<S
                 .filter(|c| c.is_ascii_graphic() || c.is_ascii_whitespace())
                 .take(200)
                 .collect();
-            if clean.is_empty() {
-                None
-            } else {
-                Some(clean)
-            }
+            if clean.is_empty() { None } else { Some(clean) }
         }
         _ => None,
     }
@@ -178,11 +163,7 @@ fn detect_service(port: u16, banner: Option<&str>) -> Option<String> {
         53 => "DNS",
         80 => {
             if let Some(b) = banner {
-                if b.contains("HTTP") {
-                    "HTTP"
-                } else {
-                    "HTTP?"
-                }
+                if b.contains("HTTP") { "HTTP" } else { "HTTP?" }
             } else {
                 "HTTP"
             }
@@ -235,11 +216,7 @@ fn detect_service(port: u16, banner: Option<&str>) -> Option<String> {
 pub fn fingerprint_os(target: &str, port: u16, timeout: Duration) -> Option<OsFingerprint> {
     // Try to connect and grab the raw TCP info via TTL inference
     let addr = format!("{target}:{port}");
-    let stream = TcpStream::connect_timeout(
-        &addr.parse().ok()?,
-        timeout,
-    )
-    .ok()?;
+    let stream = TcpStream::connect_timeout(&addr.parse().ok()?, timeout).ok()?;
 
     // Read TTL from the socket (platform-specific, approximate)
     let ttl = stream.ttl().ok().unwrap_or(64);
@@ -258,20 +235,12 @@ pub fn fingerprint_os(target: &str, port: u16, timeout: Duration) -> Option<OsFi
     Some(OsFingerprint {
         ttl: ttl as u8,
         guessed_os,
-        tcp_window_size: if window_size > 0 {
-            Some(window_size)
-        } else {
-            None
-        },
+        tcp_window_size: if window_size > 0 { Some(window_size) } else { None },
     })
 }
 
 /// Run a full IP scan: ports + OS fingerprint.
-pub fn run_ip_scan(
-    target: &str,
-    ports: &[u16],
-    timeout: Duration,
-) -> IpScanResult {
+pub fn run_ip_scan(target: &str, ports: &[u16], timeout: Duration) -> IpScanResult {
     let start = std::time::Instant::now();
 
     let port_results = scan_ports(target, ports, timeout);

@@ -104,9 +104,7 @@ fn detect_api_style(results: &[ResponseResult]) -> Vec<String> {
     if path_count("/rpc") > 0 || path_count("/jsonrpc") > 0 {
         styles.push("rpc".into());
     }
-    if results.iter().any(|r| r.endpoint_method == "POST")
-        && urls.iter().any(|u| u.contains("/graphql"))
-    {
+    if results.iter().any(|r| r.endpoint_method == "POST") && urls.iter().any(|u| u.contains("/graphql")) {
         styles.push("graphql:operations".into());
     }
     if styles.is_empty() {
@@ -164,11 +162,7 @@ fn collect_methods(results: &[ResponseResult]) -> Vec<String> {
 fn analyze_body(body: &str) -> (bool, bool, Vec<String>) {
     let has_json = body.trim().starts_with('{') || body.trim().starts_with('[');
     let has_html = body.contains("<html") || body.contains("<!DOCTYPE");
-    let keys = if has_json {
-        extract_json_keys(body)
-    } else {
-        vec![]
-    };
+    let keys = if has_json { extract_json_keys(body) } else { vec![] };
     (has_json, has_html, keys)
 }
 
@@ -258,12 +252,7 @@ mod tests {
 
     #[test]
     fn test_detect_graphql() {
-        let results = vec![sample_result(
-            "https://api.example.com/graphql",
-            200,
-            "POST",
-            true,
-        )];
+        let results = vec![sample_result("https://api.example.com/graphql", 200, "POST", true)];
         let spec = analyze(&results);
         assert!(spec.api_style.iter().any(|s| s.contains("graphql")));
     }

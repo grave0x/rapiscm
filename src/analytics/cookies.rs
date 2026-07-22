@@ -36,30 +36,26 @@ impl CookiePurpose {
 pub fn classify_cookie(name: &str) -> CookiePurpose {
     match name {
         // Analytics / statistics
-        "_ga" | "_gid" | "_gat" | "_gat_gtag" | "__utma" | "__utmb" | "__utmc" | "__utmt"
-        | "__utmz" | "_clck" | "_clsk" | "_clsc" | "_cltc" | "_clzu" | "_hjSessionUser_"
-        | "_hjSession_" | "_hjid" | "_hjs" | "hp" | "hblid" | "amplitude_id" | "AMP_"
-        | "__tdli" | "ajs_anonymous_id" | "ajs_user_id" | "mixpanel" | "mp_" | "mtm_"
-        | "_pk_id" | "_pk_ses" | "_pk_ref" => CookiePurpose::Statistics,
+        "_ga" | "_gid" | "_gat" | "_gat_gtag" | "__utma" | "__utmb" | "__utmc" | "__utmt" | "__utmz" | "_clck"
+        | "_clsk" | "_clsc" | "_cltc" | "_clzu" | "_hjSessionUser_" | "_hjSession_" | "_hjid" | "_hjs" | "hp"
+        | "hblid" | "amplitude_id" | "AMP_" | "__tdli" | "ajs_anonymous_id" | "ajs_user_id" | "mixpanel" | "mp_"
+        | "mtm_" | "_pk_id" | "_pk_ses" | "_pk_ref" => CookiePurpose::Statistics,
 
         // Advertising / marketing
-        "_fbp" | "_fbc" | "_gcl_au" | "_gcl_gs" | "_gcl_dc" | "IDE" | "test_cookie" | "fr"
-        | "tr" | "_pin_unauth" | "_tt_enable_cookie" | "_ttp" | "personalization_id"
-        | "muc_ads" | "NID" | "ANID" | "DSID" | "FLC" | "AID" | "TAID" | "_uetsid" | "_uetvid"
-        | "taboola_" | "criteo_" | "uid" => CookiePurpose::Marketing,
+        "_fbp" | "_fbc" | "_gcl_au" | "_gcl_gs" | "_gcl_dc" | "IDE" | "test_cookie" | "fr" | "tr" | "_pin_unauth"
+        | "_tt_enable_cookie" | "_ttp" | "personalization_id" | "muc_ads" | "NID" | "ANID" | "DSID" | "FLC" | "AID"
+        | "TAID" | "_uetsid" | "_uetvid" | "taboola_" | "criteo_" | "uid" => CookiePurpose::Marketing,
 
         // Necessary / functional
-        "sessionid" | "session" | "sid" | "PHPSESSID" | "JSESSIONID" | "ASP.NET_SessionId"
-        | "connect.sid" | "laravel_session" | "XSRF-TOKEN" | "csrf_token" | "csrf" | "__csrf"
-        | "csrf-state" | "__cf_bm" | "__cfruid" | "cf_clearance" | "_cfduid" | "AWSALB"
-        | "AWSALBCORS" | "SERVERID" | "lb" | "__ddg1_" | "__ddg2_" | "__ddg3_" | "__ddgid"
-        | "ARRAffinity" | "ak_bmsc" | "bm_sv" | "akavpau_ppsd" | "TS01" | "TS" | "incap_ses_" => {
-            CookiePurpose::Necessary
-        }
+        "sessionid" | "session" | "sid" | "PHPSESSID" | "JSESSIONID" | "ASP.NET_SessionId" | "connect.sid"
+        | "laravel_session" | "XSRF-TOKEN" | "csrf_token" | "csrf" | "__csrf" | "csrf-state" | "__cf_bm"
+        | "__cfruid" | "cf_clearance" | "_cfduid" | "AWSALB" | "AWSALBCORS" | "SERVERID" | "lb" | "__ddg1_"
+        | "__ddg2_" | "__ddg3_" | "__ddgid" | "ARRAffinity" | "ak_bmsc" | "bm_sv" | "akavpau_ppsd" | "TS01" | "TS"
+        | "incap_ses_" => CookiePurpose::Necessary,
 
         // Preferences
-        "language" | "lang" | "locale" | "i18n" | "currency" | "theme" | "pref" | "country"
-        | "region" | "timezone" | "tz" | "font_size" | "email" => CookiePurpose::Preferences,
+        "language" | "lang" | "locale" | "i18n" | "currency" | "theme" | "pref" | "country" | "region" | "timezone"
+        | "tz" | "font_size" | "email" => CookiePurpose::Preferences,
 
         _ => CookiePurpose::Unclassified,
     }
@@ -190,10 +186,7 @@ mod tests {
 
     #[test]
     fn test_classify_unknown() {
-        assert_eq!(
-            classify_cookie("some_random_cookie"),
-            CookiePurpose::Unclassified
-        );
+        assert_eq!(classify_cookie("some_random_cookie"), CookiePurpose::Unclassified);
     }
 
     #[test]
@@ -205,40 +198,25 @@ mod tests {
     #[test]
     fn test_analyze_missing_secure() {
         let result = analyze_cookie_security("sessionid=abc123; HttpOnly");
-        assert!(
-            result
-                .iter()
-                .any(|c| c.name.contains("secure") && !c.passed)
-        );
+        assert!(result.iter().any(|c| c.name.contains("secure") && !c.passed));
     }
 
     #[test]
     fn test_analyze_missing_httponly() {
         let result = analyze_cookie_security("sessionid=abc123; Secure");
-        assert!(
-            result
-                .iter()
-                .any(|c| c.name.contains("httponly") && !c.passed)
-        );
+        assert!(result.iter().any(|c| c.name.contains("httponly") && !c.passed));
     }
 
     #[test]
     fn test_analyze_samesite_none() {
         let result = analyze_cookie_security("id=1; SameSite=None; Secure");
-        assert!(
-            result
-                .iter()
-                .any(|c| c.name.contains("samesite") && !c.passed)
-        );
+        assert!(result.iter().any(|c| c.name.contains("samesite") && !c.passed));
     }
 
     #[test]
     fn test_summarize_cookies() {
         let headers = vec![
-            (
-                "Set-Cookie".into(),
-                "_ga=GA1.2.abc; Secure; HttpOnly".into(),
-            ),
+            ("Set-Cookie".into(), "_ga=GA1.2.abc; Secure; HttpOnly".into()),
             ("Set-Cookie".into(), "sessionid=xyz; Secure".into()),
         ];
         let summary = summarize_cookies(&headers);

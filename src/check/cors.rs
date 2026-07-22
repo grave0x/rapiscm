@@ -37,9 +37,7 @@ pub async fn check_cors(client: &reqwest::Client, url: &str, method: &str) -> Ve
                     name: "CORS".into(),
                     passed: false,
                     severity: Severity::Warn,
-                    message: format!(
-                        "Access-Control-Allow-Origin mirrors attacker origin ({origin})"
-                    ),
+                    message: format!("Access-Control-Allow-Origin mirrors attacker origin ({origin})"),
                 }),
                 Some(origin) => checks.push(Check {
                     name: "CORS".into(),
@@ -69,8 +67,7 @@ pub async fn check_cors(client: &reqwest::Client, url: &str, method: &str) -> Ve
                     name: "CORS".into(),
                     passed: false,
                     severity: Severity::Critical,
-                    message: "Wildcard origin with credentials — credentials leak to any site"
-                        .into(),
+                    message: "Wildcard origin with credentials — credentials leak to any site".into(),
                 });
             }
 

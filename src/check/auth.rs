@@ -30,9 +30,7 @@ pub async fn check_auth_required(
                     name: "Auth Required".into(),
                     passed: false,
                     severity: Severity::Warn,
-                    message: format!(
-                        "endpoint returned {status} without auth — authentication may not be enforced"
-                    ),
+                    message: format!("endpoint returned {status} without auth — authentication may not be enforced"),
                 }]
             } else if status == 401 || status == 403 {
                 vec![Check {

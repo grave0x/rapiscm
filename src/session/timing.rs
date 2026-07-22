@@ -56,10 +56,7 @@ pub struct TimingAnalytics {
 ///
 /// `timestamps` and `results` must have the same length. Timestamps
 /// should be ISO-8601 strings; they are sorted before analysis.
-pub fn compute_timing_analytics(
-    timestamps: &[String],
-    results: &[ResponseResult],
-) -> TimingAnalytics {
+pub fn compute_timing_analytics(timestamps: &[String], results: &[ResponseResult]) -> TimingAnalytics {
     if timestamps.is_empty() || results.is_empty() {
         return TimingAnalytics::default();
     }
@@ -93,10 +90,7 @@ pub fn compute_timing_analytics(
     let duration_secs = (last_ts.saturating_sub(first_ts)) as f64 / 1000.0;
 
     // Inter-request gaps.
-    let mut gaps_ms: Vec<u64> = pairs
-        .windows(2)
-        .map(|w| w[1].0.saturating_sub(w[0].0))
-        .collect();
+    let mut gaps_ms: Vec<u64> = pairs.windows(2).map(|w| w[1].0.saturating_sub(w[0].0)).collect();
     gaps_ms.sort_unstable();
 
     let gap_dist = if gaps_ms.is_empty() {
@@ -125,10 +119,7 @@ pub fn compute_timing_analytics(
     let mut endpoint_times: HashMap<String, Vec<u64>> = HashMap::new();
     for (_, res) in &pairs {
         let path = extract_path(&res.endpoint_url);
-        endpoint_times
-            .entry(path)
-            .or_default()
-            .push(res.response_time_ms);
+        endpoint_times.entry(path).or_default().push(res.response_time_ms);
     }
     let per_endpoint_timing: HashMap<String, TimingDistribution> = endpoint_times
         .into_iter()
@@ -183,10 +174,7 @@ pub fn format_timing_analytics(ta: &TimingAnalytics) -> String {
         out.push_str("\nBursts (≥10 req/s):\n");
         for b in &ta.bursts {
             let urls: Vec<&str> = b.urls.iter().map(|s| s.as_str()).collect();
-            out.push_str(&format!(
-                "  {}    {} req/s  {:?}\n",
-                b.at, b.requests_in_second, urls
-            ));
+            out.push_str(&format!("  {}    {} req/s  {:?}\n", b.at, b.requests_in_second, urls));
         }
     }
 
@@ -202,14 +190,10 @@ pub fn format_timing_analytics(ta: &TimingAnalytics) -> String {
 
     if !ta.per_endpoint_timing.is_empty() {
         out.push_str("\nSlowest endpoints (p99):\n");
-        let mut endpoints: Vec<(&String, &TimingDistribution)> =
-            ta.per_endpoint_timing.iter().collect();
+        let mut endpoints: Vec<(&String, &TimingDistribution)> = ta.per_endpoint_timing.iter().collect();
         endpoints.sort_by_key(|b| std::cmp::Reverse(b.1.p99_ms));
         for (path, dist) in endpoints.iter().take(10) {
-            out.push_str(&format!(
-                "  {}    {}ms (p50 {})ms\n",
-                path, dist.p99_ms, dist.p50_ms
-            ));
+            out.push_str(&format!("  {}    {}ms (p50 {})ms\n", path, dist.p99_ms, dist.p50_ms));
         }
     }
 
@@ -244,21 +228,9 @@ fn parse_iso8601(s: &str) -> Option<u64> {
         + chars[3].to_digit(10)?;
     let month = parse2(&chars[5..=6])?;
     let day = parse2(&chars[8..=9])?;
-    let hour = if chars.len() > 11 {
-        parse2(&chars[11..=12])?
-    } else {
-        0
-    };
-    let min = if chars.len() > 14 {
-        parse2(&chars[14..=15])?
-    } else {
-        0
-    };
-    let sec = if chars.len() > 17 {
-        parse2(&chars[17..=18])?
-    } else {
-        0
-    };
+    let hour = if chars.len() > 11 { parse2(&chars[11..=12])? } else { 0 };
+    let min = if chars.len() > 14 { parse2(&chars[14..=15])? } else { 0 };
+    let sec = if chars.len() > 17 { parse2(&chars[17..=18])? } else { 0 };
 
     // Parse fractional seconds.
     let mut millis = 0u64;
@@ -330,11 +302,7 @@ fn detect_bursts<'a>(pairs: &'a [(u64, &'a ResponseResult)]) -> Vec<Burst> {
 
         if count >= 10 {
             // Find the ISO timestamp for this burst.
-            let at_ts = pairs[i]
-                .1
-                .timestamp
-                .clone()
-                .unwrap_or_else(|| format_epoch(pairs[i].0));
+            let at_ts = pairs[i].1.timestamp.clone().unwrap_or_else(|| format_epoch(pairs[i].0));
             bursts.push(Burst {
                 at: at_ts,
                 requests_in_second: count,
@@ -374,11 +342,7 @@ fn detect_rate_limits(pairs: &[(u64, &ResponseResult)]) -> Vec<RateLimitEvent> {
         let duration_secs = window_size / 1000.0;
         let rate = count as f64 / duration_secs.max(0.001);
 
-        let at_ts = pairs[i]
-            .1
-            .timestamp
-            .clone()
-            .unwrap_or_else(|| format_epoch(pairs[i].0));
+        let at_ts = pairs[i].1.timestamp.clone().unwrap_or_else(|| format_epoch(pairs[i].0));
 
         events.push(RateLimitEvent {
             at: at_ts,
@@ -429,16 +393,9 @@ fn format_epoch(ms: u64) -> String {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 {
-        mp as u32 + 3
-    } else {
-        mp as u32 - 9
-    };
+    let m = if mp < 10 { mp as u32 + 3 } else { mp as u32 - 9 };
     let year = if m <= 2 { y as u32 + 1 } else { y as u32 };
-    format!(
-        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
-        year, m, d, hour, min, sec
-    )
+    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", year, m, d, hour, min, sec)
 }
 
 #[cfg(test)]
@@ -496,10 +453,7 @@ mod tests {
     #[test]
     fn test_extract_path() {
         assert_eq!(extract_path("https://example.com/api/users"), "/api/users");
-        assert_eq!(
-            extract_path("https://example.com/api/users?page=1"),
-            "/api/users"
-        );
+        assert_eq!(extract_path("https://example.com/api/users?page=1"), "/api/users");
         assert_eq!(extract_path("https://example.com/"), "/");
         assert_eq!(extract_path("https://example.com"), "/");
     }

@@ -15,9 +15,7 @@ pub fn parse_spec_file(path: &Path) -> Result<Vec<Endpoint>> {
 
     // Parse with openapiv3 for paths + operations
     let spec: OpenAPI = match path.extension().and_then(|e| e.to_str()) {
-        Some("yaml") | Some("yml") => {
-            serde_yaml::from_str(&content).map_err(|e| Error::SpecParse(e.to_string()))?
-        }
+        Some("yaml") | Some("yml") => serde_yaml::from_str(&content).map_err(|e| Error::SpecParse(e.to_string()))?,
         _ => serde_json::from_str(&content).map_err(|e| Error::SpecParse(e.to_string()))?,
     };
     let mut endpoints = endpoints_from_spec(&spec)?;
@@ -26,17 +24,13 @@ pub fn parse_spec_file(path: &Path) -> Result<Vec<Endpoint>> {
     // (openapiv3 v2 doesn't expose webhooks)
     let raw: serde_json::Value = match path.extension().and_then(|e| e.to_str()) {
         Some("yaml") | Some("yml") => {
-            let yv: serde_yaml::Value =
-                serde_yaml::from_str(&content).map_err(|e| Error::SpecParse(e.to_string()))?;
+            let yv: serde_yaml::Value = serde_yaml::from_str(&content).map_err(|e| Error::SpecParse(e.to_string()))?;
             serde_json::to_value(yv).map_err(|e| Error::SpecParse(e.to_string()))?
         }
         _ => serde_json::from_str(&content).map_err(|e| Error::SpecParse(e.to_string()))?,
     };
 
-    let version = raw
-        .get("openapi")
-        .and_then(|v| v.as_str())
-        .unwrap_or("3.0");
+    let version = raw.get("openapi").and_then(|v| v.as_str()).unwrap_or("3.0");
 
     if version.starts_with("3.1") || version.starts_with('4') {
         let base_url = resolve_base_url(&spec.servers);
@@ -69,15 +63,13 @@ fn endpoints_from_spec(spec: &OpenAPI) -> Result<Vec<Endpoint>> {
             };
             match param {
                 Parameter::Path {
-                    parameter_data: data,
-                    ..
+                    parameter_data: data, ..
                 } => {
                     let example = resolve_param_example(data);
                     param_examples.push((data.name.clone(), example));
                 }
                 Parameter::Header {
-                    parameter_data: data,
-                    ..
+                    parameter_data: data, ..
                 } => {
                     if let Some(example) = &data.example
                         && let Some(s) = example.as_str()
@@ -249,20 +241,18 @@ fn extract_webhooks(raw: &serde_json::Value, base_url: &str) -> Vec<Endpoint> {
                 _ => continue,
             };
 
-            let operation_id = op
-                .get("operationId")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
+            let operation_id = op.get("operationId").and_then(|v| v.as_str()).map(|s| s.to_string());
 
-            let description = op
-                .get("description")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
+            let description = op.get("description").and_then(|v| v.as_str()).map(|s| s.to_string());
 
             let hook_path = format!("/.webhooks/{}/{}", name, method);
 
             // Try to construct a URL from any server info in the spec
-            let url = format!("{}/{}", base_url.trim_end_matches('/'), hook_path.trim_start_matches('/'));
+            let url = format!(
+                "{}/{}",
+                base_url.trim_end_matches('/'),
+                hook_path.trim_start_matches('/')
+            );
 
             let mut tags = match operation_id.as_deref() {
                 Some(id) => vec![format!("webhook:{}", id)],
@@ -275,9 +265,9 @@ fn extract_webhooks(raw: &serde_json::Value, base_url: &str) -> Vec<Endpoint> {
 
             endpoints.push(Endpoint {
                 method: method.to_uppercase().parse().unwrap_or(reqwest::Method::POST),
-                url: url.parse().unwrap_or_else(|_| {
-                    reqwest::Url::parse("https://localhost").unwrap()
-                }),
+                url: url
+                    .parse()
+                    .unwrap_or_else(|_| reqwest::Url::parse("https://localhost").unwrap()),
                 headers: Vec::new(),
                 body: None,
                 expected_status: None,
@@ -339,13 +329,11 @@ mod tests {
 
     #[test]
     fn test_resolve_base_url_with_vars() {
-        let servers: Vec<Server> =
-            serde_json::from_str(r#"[{"url": "https://{region}.api.example.com", "variables": {"region": {"default": "us-east"}}}]"#)
-                .unwrap();
-        assert_eq!(
-            resolve_base_url(&servers),
-            "https://us-east.api.example.com"
-        );
+        let servers: Vec<Server> = serde_json::from_str(
+            r#"[{"url": "https://{region}.api.example.com", "variables": {"region": {"default": "us-east"}}}]"#,
+        )
+        .unwrap();
+        assert_eq!(resolve_base_url(&servers), "https://us-east.api.example.com");
     }
 
     #[test]

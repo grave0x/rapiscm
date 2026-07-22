@@ -21,20 +21,12 @@ pub fn extract_from_response(
     let mut urls = headers::extract_headers(headers, base_url);
     let ct = content_type.to_lowercase();
     if ct.contains("text/html") || ct.contains("application/html") {
-        urls.extend(html::extract_html(
-            std::str::from_utf8(body).unwrap_or(""),
-            base_url,
-        ));
+        urls.extend(html::extract_html(std::str::from_utf8(body).unwrap_or(""), base_url));
     } else if ct.contains("application/json") || ct.contains("application/problem+json") {
         urls.extend(json::extract_json(body, base_url));
-    } else if ct.contains("javascript") || ct.contains("ecmascript") || ct.contains("x-javascript")
-    {
-        urls.extend(js::extract_js(
-            std::str::from_utf8(body).unwrap_or(""),
-            base_url,
-        ));
-    } else if ct.contains("text/xml") || ct.contains("application/xml") || ct.contains("text/plain")
-    {
+    } else if ct.contains("javascript") || ct.contains("ecmascript") || ct.contains("x-javascript") {
+        urls.extend(js::extract_js(std::str::from_utf8(body).unwrap_or(""), base_url));
+    } else if ct.contains("text/xml") || ct.contains("application/xml") || ct.contains("text/plain") {
         let text = std::str::from_utf8(body).unwrap_or("");
         urls.extend(sitemap::extract_robots_txt(text, base_url));
         urls.extend(js::extract_js(text, base_url));

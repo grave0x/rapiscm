@@ -162,9 +162,7 @@ impl Severity {
 /// Convert AuthConfig into an HTTP header (name, value) pair.
 pub fn auth_to_header(auth: &Option<AuthConfig>) -> Option<(String, String)> {
     match auth {
-        Some(AuthConfig::Bearer(token)) => {
-            Some(("Authorization".into(), format!("Bearer {token}")))
-        }
+        Some(AuthConfig::Bearer(token)) => Some(("Authorization".into(), format!("Bearer {token}"))),
         Some(AuthConfig::Basic { username, password }) => {
             let encoded = base64_encode(&format!("{username}:{password}"));
             Some(("Authorization".into(), format!("Basic {encoded}")))

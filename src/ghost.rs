@@ -64,12 +64,7 @@ pub struct GhostConfig {
 }
 
 impl GhostConfig {
-    pub fn new(
-        enabled: bool,
-        jitter_pct: u32,
-        ua_mode: Option<String>,
-        proxies: Vec<String>,
-    ) -> Self {
+    pub fn new(enabled: bool, jitter_pct: u32, ua_mode: Option<String>, proxies: Vec<String>) -> Self {
         Self {
             enabled,
             jitter_pct,

@@ -69,11 +69,7 @@ pub fn load_checkpoint(storage: &TaskStorage, id: TaskId) -> Result<Option<Resum
 
 /// Write a checkpoint file recording which endpoint indices have been scanned.
 #[allow(dead_code)]
-pub fn write_checkpoint(
-    storage: &TaskStorage,
-    id: TaskId,
-    completed_indices: &[usize],
-) -> Result<(), Error> {
+pub fn write_checkpoint(storage: &TaskStorage, id: TaskId, completed_indices: &[usize]) -> Result<(), Error> {
     let ck_path = storage.task_dir(id).join("checkpoint.json");
     let data = serde_json::json!({ "completed_indices": completed_indices });
     let json = serde_json::to_string_pretty(&data).map_err(|e| Error::Task(e.to_string()))?;

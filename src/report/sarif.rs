@@ -9,11 +9,7 @@
 use crate::types::ResponseResult;
 
 /// Render scan results as a SARIF 2.1.0 JSON string.
-pub fn to_sarif(
-    results: &[ResponseResult],
-    target_description: &str,
-    version: &str,
-) -> String {
+pub fn to_sarif(results: &[ResponseResult], target_description: &str, version: &str) -> String {
     let mut sarif_results = Vec::new();
 
     for (i, r) in results.iter().enumerate() {
@@ -95,26 +91,66 @@ pub fn to_sarif(
 /// Build the `rules` array for the SARIF tool driver — one entry per check type.
 fn build_rules_metadata() -> serde_json::Value {
     let rules = [
-        ("CSP", "Content-Security-Policy header missing — prevents XSS via allowed sources",
-         "The HTTP response does not include a Content-Security-Policy header, making the page vulnerable to cross-site scripting attacks.", "warning"),
-        ("HSTS", "Strict-Transport-Security header missing — no HTTPS enforcement",
-         "The HTTP response does not include a Strict-Transport-Security header, allowing connections over unencrypted HTTP.", "error"),
-        ("X-Content-Type-Options", "X-Content-Type-Options header missing — MIME-sniffing allowed",
-         "The HTTP response does not include X-Content-Type-Options: nosniff, allowing the browser to perform MIME type sniffing.", "warning"),
-        ("X-Frame-Options", "X-Frame-Options header missing — page can be framed (clickjacking risk)",
-         "The HTTP response does not include an X-Frame-Options header, allowing the page to be embedded in frames.", "note"),
-        ("Cache-Control", "Cache-Control header missing — responses may be cached",
-         "The HTTP response does not include Cache-Control directives, potentially allowing sensitive responses to be cached.", "note"),
-        ("CORS", "CORS misconfiguration — cross-origin access may be too permissive",
-         "The endpoint returns permissive CORS headers, potentially allowing unauthorized cross-origin access.", "warning"),
-        ("Auth", "Endpoint lacks authentication enforcement",
-         "The endpoint returned a successful response without requiring authentication, exposing it to unauthorized access.", "error"),
-        ("Schema", "Response body failed schema validation",
-         "The response body does not match the expected schema defined in the API specification.", "warning"),
-        ("Response Status", "Unexpected HTTP response status code",
-         "The endpoint returned an unexpected HTTP status code that may indicate an error or misconfiguration.", "warning"),
-        ("Trackers", "Tracking cookies detected",
-         "The response includes tracking cookies that may indicate analytics or advertising integration.", "note"),
+        (
+            "CSP",
+            "Content-Security-Policy header missing — prevents XSS via allowed sources",
+            "The HTTP response does not include a Content-Security-Policy header, making the page vulnerable to cross-site scripting attacks.",
+            "warning",
+        ),
+        (
+            "HSTS",
+            "Strict-Transport-Security header missing — no HTTPS enforcement",
+            "The HTTP response does not include a Strict-Transport-Security header, allowing connections over unencrypted HTTP.",
+            "error",
+        ),
+        (
+            "X-Content-Type-Options",
+            "X-Content-Type-Options header missing — MIME-sniffing allowed",
+            "The HTTP response does not include X-Content-Type-Options: nosniff, allowing the browser to perform MIME type sniffing.",
+            "warning",
+        ),
+        (
+            "X-Frame-Options",
+            "X-Frame-Options header missing — page can be framed (clickjacking risk)",
+            "The HTTP response does not include an X-Frame-Options header, allowing the page to be embedded in frames.",
+            "note",
+        ),
+        (
+            "Cache-Control",
+            "Cache-Control header missing — responses may be cached",
+            "The HTTP response does not include Cache-Control directives, potentially allowing sensitive responses to be cached.",
+            "note",
+        ),
+        (
+            "CORS",
+            "CORS misconfiguration — cross-origin access may be too permissive",
+            "The endpoint returns permissive CORS headers, potentially allowing unauthorized cross-origin access.",
+            "warning",
+        ),
+        (
+            "Auth",
+            "Endpoint lacks authentication enforcement",
+            "The endpoint returned a successful response without requiring authentication, exposing it to unauthorized access.",
+            "error",
+        ),
+        (
+            "Schema",
+            "Response body failed schema validation",
+            "The response body does not match the expected schema defined in the API specification.",
+            "warning",
+        ),
+        (
+            "Response Status",
+            "Unexpected HTTP response status code",
+            "The endpoint returned an unexpected HTTP status code that may indicate an error or misconfiguration.",
+            "warning",
+        ),
+        (
+            "Trackers",
+            "Tracking cookies detected",
+            "The response includes tracking cookies that may indicate analytics or advertising integration.",
+            "note",
+        ),
     ];
 
     let rules: Vec<serde_json::Value> = rules

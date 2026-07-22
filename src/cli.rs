@@ -536,7 +536,14 @@ mod tests {
         ])
         .unwrap();
         match cli.command {
-            Command::Fuzz { target, wordlist, extensions, mc, mode, .. } => {
+            Command::Fuzz {
+                target,
+                wordlist,
+                extensions,
+                mc,
+                mode,
+                ..
+            } => {
                 assert_eq!(target, "https://example.com/FUZZ");
                 assert_eq!(wordlist.unwrap(), "common.txt");
                 assert_eq!(extensions, vec!["php", "asp"]);
@@ -620,8 +627,7 @@ mod tests {
 
     #[test]
     fn test_session_subcommand() {
-        let cli = Cli::try_parse_from(["rapiscm", "session", "session.jsonl", "--timing"])
-            .unwrap();
+        let cli = Cli::try_parse_from(["rapiscm", "session", "session.jsonl", "--timing"]).unwrap();
         match cli.command {
             Command::Session { file, timing, .. } => {
                 assert_eq!(file.to_str().unwrap(), "session.jsonl");
@@ -721,13 +727,7 @@ mod tests {
 
     #[test]
     fn test_invalid_output_rejected() {
-        let result = Cli::try_parse_from([
-            "rapiscm",
-            "scan",
-            "https://example.com",
-            "-o",
-            "csv",
-        ]);
+        let result = Cli::try_parse_from(["rapiscm", "scan", "https://example.com", "-o", "csv"]);
         assert!(result.is_err());
     }
 
@@ -739,10 +739,14 @@ mod tests {
 
     #[test]
     fn test_fuzz_default_mode() {
-        let cli =
-            Cli::try_parse_from(["rapiscm", "fuzz", "https://example.com/FUZZ"]).unwrap();
+        let cli = Cli::try_parse_from(["rapiscm", "fuzz", "https://example.com/FUZZ"]).unwrap();
         match cli.command {
-            Command::Fuzz { mode, wordlist_mode, keyword, .. } => {
+            Command::Fuzz {
+                mode,
+                wordlist_mode,
+                keyword,
+                ..
+            } => {
                 assert_eq!(mode, "path");
                 assert_eq!(wordlist_mode, "sniper");
                 assert_eq!(keyword, "FUZZ");

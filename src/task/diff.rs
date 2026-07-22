@@ -128,10 +128,7 @@ pub fn diff_tasks(storage: &TaskStorage, old_id: u64, new_id: u64) -> Result<Tas
     })
 }
 
-fn compare_endpoints(
-    old: &crate::types::ResponseResult,
-    new: &crate::types::ResponseResult,
-) -> DiffKind {
+fn compare_endpoints(old: &crate::types::ResponseResult, new: &crate::types::ResponseResult) -> DiffKind {
     if old.status_code != new.status_code {
         return DiffKind::StatusChanged {
             old: old.status_code,
@@ -242,10 +239,7 @@ mod tests {
             severity: Severity::Info,
             message: "CSP present".into(),
         });
-        assert!(matches!(
-            compare_endpoints(&old, &new),
-            DiffKind::NewCheck { .. }
-        ));
+        assert!(matches!(compare_endpoints(&old, &new), DiffKind::NewCheck { .. }));
     }
 
     #[test]
@@ -258,10 +252,7 @@ mod tests {
             message: "CSP present".into(),
         });
         let new = mk_result("/api", 200, 50);
-        assert!(matches!(
-            compare_endpoints(&old, &new),
-            DiffKind::RemovedCheck { .. }
-        ));
+        assert!(matches!(compare_endpoints(&old, &new), DiffKind::RemovedCheck { .. }));
     }
 
     #[test]

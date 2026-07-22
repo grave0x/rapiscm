@@ -28,8 +28,7 @@ pub struct SessionConfig {
 /// skipped) → compute timing analytics (if --timing) → print report.
 pub async fn run_session(config: &SessionConfig) -> Result<()> {
     tracing::info!("parsing session file: {}", config.file.display());
-    let (mut results, timestamps) =
-        parse::parse_session_file(&config.file, config.max_parse_errors)?;
+    let (mut results, timestamps) = parse::parse_session_file(&config.file, config.max_parse_errors)?;
 
     tracing::info!("parsed {} requests, running checks...", results.len());
 

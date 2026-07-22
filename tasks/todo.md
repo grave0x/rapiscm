@@ -72,7 +72,9 @@ Derived from `.scratch/v0.2-release/tickets.md`
 - [x] `QueueItem` with full metadata (status, timestamps, retries, errors)
 
 ## T8: Release
-- [ ] Version bumped to 0.2.0
-- [ ] CHANGELOG.md updated
-- [ ] Git tag `v0.2.0` pushed
-- [ ] Full CI matrix passes
+- [x] Version bumped to 0.2.0
+- [x] CHANGELOG.md updated with v0.2.0 entries
+- [x] Git commit ready (ab69a21)
+- [ ] Git tag `v0.2.0` (manual, post-review)
+- [ ] `cargo publish` (manual, post-tag)
+- [ ] GitHub Release with binary artifacts (manual, post-tag)

@@ -16,9 +16,7 @@ use crate::fuzz::matcher::MatchConfig;
 use crate::types::ResponseResult;
 
 /// HTTP methods for method fuzzing.
-const HTTP_METHODS: &[&str] = &[
-    "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE",
-];
+const HTTP_METHODS: &[&str] = &["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE"];
 
 /// Common headers for header fuzzing. "FUZZ" in the value is replaced with the word.
 const FUZZ_HEADERS: &[(&str, &str)] = &[
@@ -73,15 +71,9 @@ impl FuzzRunner {
         let base_no_trailing = base_str.trim_end_matches('/');
 
         if base_str.contains(keyword) {
-            words
-                .iter()
-                .map(|w| base_str.replace(keyword, w))
-                .collect()
+            words.iter().map(|w| base_str.replace(keyword, w)).collect()
         } else {
-            words
-                .iter()
-                .map(|w| format!("{base_no_trailing}{w}"))
-                .collect()
+            words.iter().map(|w| format!("{base_no_trailing}{w}")).collect()
         }
     }
 
@@ -105,11 +97,7 @@ impl FuzzRunner {
                 let _permit = permit;
                 tokio::time::sleep(delay).await;
                 let result = hit_get(&client, &url_str).await;
-                if matcher.evaluate(&result) {
-                    Some(result)
-                } else {
-                    None
-                }
+                if matcher.evaluate(&result) { Some(result) } else { None }
             }));
         }
         collect(handles).await
@@ -137,11 +125,7 @@ impl FuzzRunner {
                     let _permit = permit;
                     tokio::time::sleep(delay).await;
                     let result = hit_get(&client, &param_url).await;
-                    if matcher.evaluate(&result) {
-                        Some(result)
-                    } else {
-                        None
-                    }
+                    if matcher.evaluate(&result) { Some(result) } else { None }
                 }));
             }
         }
@@ -171,11 +155,7 @@ impl FuzzRunner {
                     let _permit = permit;
                     tokio::time::sleep(delay).await;
                     let result = hit_method(&client, &url, &m).await;
-                    if matcher.evaluate(&result) {
-                        Some(result)
-                    } else {
-                        None
-                    }
+                    if matcher.evaluate(&result) { Some(result) } else { None }
                 }));
             }
         }
@@ -206,13 +186,8 @@ impl FuzzRunner {
                     handles.push(tokio::spawn(async move {
                         let _permit = permit;
                         tokio::time::sleep(delay).await;
-                        let result =
-                            hit_with_header(&client, &url, &hdr, &val).await;
-                        if matcher.evaluate(&result) {
-                            Some(result)
-                        } else {
-                            None
-                        }
+                        let result = hit_with_header(&client, &url, &hdr, &val).await;
+                        if matcher.evaluate(&result) { Some(result) } else { None }
                     }));
                 }
             }
@@ -251,11 +226,7 @@ impl FuzzRunner {
                     let _permit = permit;
                     tokio::time::sleep(delay).await;
                     let result = hit_with_body(&client, &url, &body).await;
-                    if matcher.evaluate(&result) {
-                        Some(result)
-                    } else {
-                        None
-                    }
+                    if matcher.evaluate(&result) { Some(result) } else { None }
                 }));
             }
         }
@@ -263,9 +234,7 @@ impl FuzzRunner {
     }
 }
 
-async fn collect(
-    handles: Vec<tokio::task::JoinHandle<Option<ResponseResult>>>,
-) -> Vec<ResponseResult> {
+async fn collect(handles: Vec<tokio::task::JoinHandle<Option<ResponseResult>>>) -> Vec<ResponseResult> {
     let mut results = Vec::new();
     for h in handles {
         if let Ok(Some(r)) = h.await {
@@ -278,9 +247,7 @@ async fn collect(
 async fn hit_get(client: &reqwest::Client, url: &str) -> ResponseResult {
     let start = std::time::Instant::now();
     match client.get(url).send().await {
-        Ok(resp) => {
-            make_result("GET", url, resp, start.elapsed().as_millis() as u64, None).await
-        }
+        Ok(resp) => make_result("GET", url, resp, start.elapsed().as_millis() as u64, None).await,
         Err(e) => error_result("GET", url, start.elapsed().as_millis() as u64, &e.to_string()),
     }
 }
@@ -291,34 +258,16 @@ async fn hit_method(client: &reqwest::Client, url: &str, method: &str) -> Respon
     let start = std::time::Instant::now();
     let req = client.request(m, url);
     match req.send().await {
-        Ok(resp) => {
-            make_result(method, url, resp, start.elapsed().as_millis() as u64, None).await
-        }
-        Err(e) => {
-            error_result(method, url, start.elapsed().as_millis() as u64, &e.to_string())
-        }
+        Ok(resp) => make_result(method, url, resp, start.elapsed().as_millis() as u64, None).await,
+        Err(e) => error_result(method, url, start.elapsed().as_millis() as u64, &e.to_string()),
     }
 }
 
-async fn hit_with_header(
-    client: &reqwest::Client,
-    url: &str,
-    header_name: &str,
-    header_val: &str,
-) -> ResponseResult {
+async fn hit_with_header(client: &reqwest::Client, url: &str, header_name: &str, header_val: &str) -> ResponseResult {
     let start = std::time::Instant::now();
-    match client
-        .get(url)
-        .header(header_name, header_val)
-        .send()
-        .await
-    {
-        Ok(resp) => {
-            make_result("GET", url, resp, start.elapsed().as_millis() as u64, None).await
-        }
-        Err(e) => {
-            error_result("GET", url, start.elapsed().as_millis() as u64, &e.to_string())
-        }
+    match client.get(url).header(header_name, header_val).send().await {
+        Ok(resp) => make_result("GET", url, resp, start.elapsed().as_millis() as u64, None).await,
+        Err(e) => error_result("GET", url, start.elapsed().as_millis() as u64, &e.to_string()),
     }
 }
 
@@ -331,10 +280,7 @@ async fn hit_with_body(client: &reqwest::Client, url: &str, body: &str) -> Respo
         .send()
         .await
     {
-        Ok(resp) => {
-            make_result("POST", url, resp, start.elapsed().as_millis() as u64, Some(body.len()))
-                .await
-        }
+        Ok(resp) => make_result("POST", url, resp, start.elapsed().as_millis() as u64, Some(body.len())).await,
         Err(e) => error_result("POST", url, start.elapsed().as_millis() as u64, &e.to_string()),
     }
 }

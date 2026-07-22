@@ -46,9 +46,7 @@ pub fn compute_summary(results: &[ResponseResult]) -> SummaryStats {
         }
         s.trackers_total += r.trackers.len();
         for t in &r.trackers {
-            *s.trackers_by_category
-                .entry(t.category.as_str())
-                .or_insert(0) += 1;
+            *s.trackers_by_category.entry(t.category.as_str()).or_insert(0) += 1;
         }
     }
     s
@@ -66,13 +64,7 @@ pub fn format_summary(results: &[ResponseResult]) -> String {
          - **Checks failed:** {}\n\
          - **Warnings:** {}\n\
          - **Trackers found:** {}\n",
-        s.total,
-        s.successful,
-        s.errors,
-        s.checks_passed,
-        s.checks_failed,
-        s.checks_warn,
-        s.trackers_total,
+        s.total, s.successful, s.errors, s.checks_passed, s.checks_failed, s.checks_warn, s.trackers_total,
     );
     if !s.trackers_by_category.is_empty() {
         out.push_str("  **Tracker categories:**\n");
@@ -123,8 +115,18 @@ mod tests {
         let mut r3 = result();
         r3.status_code = 500;
         r3.checks = vec![
-            Check { name: "CSP".into(), passed: true, severity: Severity::Info, message: "".into() },
-            Check { name: "HSTS".into(), passed: false, severity: Severity::Warn, message: "".into() },
+            Check {
+                name: "CSP".into(),
+                passed: true,
+                severity: Severity::Info,
+                message: "".into(),
+            },
+            Check {
+                name: "HSTS".into(),
+                passed: false,
+                severity: Severity::Warn,
+                message: "".into(),
+            },
         ];
         let results = vec![r, r2, r3];
         let s = compute_summary(&results);

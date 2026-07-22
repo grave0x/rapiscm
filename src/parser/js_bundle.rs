@@ -216,9 +216,7 @@ fn find_fetch_calls(js: &str) -> Vec<JsApiEndpoint> {
 /// Find api.get(...), client.post(...), axios.put(...) etc.
 fn find_api_client_calls(js: &str) -> Vec<JsApiEndpoint> {
     let mut results = Vec::new();
-    let http_methods = [
-        "get", "post", "put", "patch", "delete", "head", "options", "request",
-    ];
+    let http_methods = ["get", "post", "put", "patch", "delete", "head", "options", "request"];
     // Match patterns like: api.get('/users'), client.post('/api/users'), axios.put(`/api/...`)
     for quote in ['"', '\'', '`'] {
         for method in &http_methods {
@@ -675,9 +673,9 @@ fn looks_like_api_path(s: &str) -> bool {
     }
     // Must contain at least one API indicator or have a reasonable path depth
     let api_indicators = [
-        "/api/", "/rest/", "/v1/", "/v2/", "/v3/", "/graphql", "/auth/", "/oauth/", "/token",
-        "/login", "/users", "/admin", "/health", "/status", "/metrics", "/swagger", "/openapi",
-        "/docs", "/backend", "/service", "/rpc", "/query",
+        "/api/", "/rest/", "/v1/", "/v2/", "/v3/", "/graphql", "/auth/", "/oauth/", "/token", "/login", "/users",
+        "/admin", "/health", "/status", "/metrics", "/swagger", "/openapi", "/docs", "/backend", "/service", "/rpc",
+        "/query",
     ];
     if let Some(first) = s.chars().next()
         && first == '/'
@@ -692,8 +690,7 @@ fn looks_like_api_path(s: &str) -> bool {
     }
     // Absolute URLs — check api indicators via path component
     if s.starts_with("http://") || s.starts_with("https://") {
-        return api_indicators.iter().any(|i| lower.contains(i))
-            || lower.chars().filter(|&c| c == '/').count() >= 3;
+        return api_indicators.iter().any(|i| lower.contains(i)) || lower.chars().filter(|&c| c == '/').count() >= 3;
     }
     false
 }
@@ -705,7 +702,11 @@ fn extract_method_nearby(js: &str, path_pos: usize, _path: &str) -> Option<Strin
     }
     let start = {
         let raw = path_pos.saturating_sub(80);
-        if js.is_char_boundary(raw) { raw } else { raw.saturating_add(1) }
+        if js.is_char_boundary(raw) {
+            raw
+        } else {
+            raw.saturating_add(1)
+        }
     };
     let before = &js[start..path_pos];
     for method in &[
@@ -745,7 +746,8 @@ mod tests {
 
     #[test]
     fn test_extract_script_srcs_basic() {
-        let html = r#"<html><script src="/bundle.js"></script><script src='https://cdn.example.com/app.js'></script></html>"#;
+        let html =
+            r#"<html><script src="/bundle.js"></script><script src='https://cdn.example.com/app.js'></script></html>"#;
         let base = Url::parse("https://example.com").unwrap();
         let urls = extract_script_srcs(html, &base);
         assert_eq!(urls.len(), 2);
@@ -804,9 +806,9 @@ mod tests {
                 .any(|r| r.path.contains("/v2/items/1") && r.method.as_deref() == Some("PUT"))
         );
         assert!(
-            results.iter().any(
-                |r| r.path.contains("/api/sessions/1") && r.method.as_deref() == Some("DELETE")
-            )
+            results
+                .iter()
+                .any(|r| r.path.contains("/api/sessions/1") && r.method.as_deref() == Some("DELETE"))
         );
     }
 
@@ -884,10 +886,6 @@ mod tests {
     fn test_find_minified_paths() {
         let js = r#"createRoute({path:"/api/rest/v1/users"})"#;
         let results = find_minified_paths(js);
-        assert!(
-            results
-                .iter()
-                .any(|r| r.path.contains("/api/rest/v1/users"))
-        );
+        assert!(results.iter().any(|r| r.path.contains("/api/rest/v1/users")));
     }
 }

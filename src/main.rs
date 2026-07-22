@@ -28,17 +28,13 @@ use tracing_subscriber::EnvFilter;
 fn init_logging(level: &str, filters: &[String], format: &str) {
     let mut filter_builder = EnvFilter::builder();
     for f in filters {
-        filter_builder =
-            filter_builder.with_default_directive(f.parse().expect("invalid log filter directive"));
+        filter_builder = filter_builder.with_default_directive(f.parse().expect("invalid log filter directive"));
     }
     let filter = filter_builder
         .with_default_directive(level.parse().unwrap_or(tracing::Level::INFO.into()))
         .from_env_lossy();
     let _ = match format {
-        "json" => tracing_subscriber::fmt()
-            .json()
-            .with_env_filter(filter)
-            .try_init(),
+        "json" => tracing_subscriber::fmt().json().with_env_filter(filter).try_init(),
         _ => tracing_subscriber::fmt()
             .without_time()
             .with_env_filter(filter)
@@ -120,12 +116,9 @@ async fn main() -> anyhow::Result<()> {
             max_parse_errors: *max_parse_errors,
             skip_cors: *skip_cors,
             skip_auth: *skip_auth,
-            output: config::parse_output(&global.output)
-                .map_err(|e| anyhow::anyhow!("output format: {e}"))?,
+            output: config::parse_output(&global.output).map_err(|e| anyhow::anyhow!("output format: {e}"))?,
         };
-        session::run_session(&cfg)
-            .await
-            .map_err(|e| anyhow::anyhow!("{e}"))?;
+        session::run_session(&cfg).await.map_err(|e| anyhow::anyhow!("{e}"))?;
         return Ok(());
     }
 
@@ -137,8 +130,7 @@ async fn main() -> anyhow::Result<()> {
             api_keys: keys,
         };
         let domains = discover::run_discover(&disc_config).await?;
-        let json = serde_json::to_string_pretty(&domains)
-            .map_err(|e| anyhow::anyhow!("serialize: {e}"))?;
+        let json = serde_json::to_string_pretty(&domains).map_err(|e| anyhow::anyhow!("serialize: {e}"))?;
         println!("{json}");
         discover::save_report(&domains, name)?;
         tracing::info!("Found {} domains for {name}", domains.len());
@@ -160,10 +152,7 @@ async fn main() -> anyhow::Result<()> {
                 if tasks.is_empty() {
                     println!("No tasks found.");
                 } else {
-                    println!(
-                        "{:<6} {:<30} {:<20} {:<8} Target",
-                        "ID", "Name", "Created", ""
-                    );
+                    println!("{:<6} {:<30} {:<20} {:<8} Target", "ID", "Name", "Created", "");
                     println!("{}", "-".repeat(90));
                     for t in &tasks {
                         println!(
@@ -226,11 +215,7 @@ async fn main() -> anyhow::Result<()> {
                 let diff = task::diff_tasks(&storage, *old_id, *new_id).map_err(e)?;
                 println!(
                     "Task {} vs {}: {} changed, {} added, {} removed",
-                    diff.old_id,
-                    diff.new_id,
-                    diff.changed_count,
-                    diff.added_count,
-                    diff.removed_count
+                    diff.old_id, diff.new_id, diff.changed_count, diff.added_count, diff.removed_count
                 );
                 for ed in &diff.changes {
                     let label = match &ed.kind {
@@ -263,9 +248,7 @@ async fn main() -> anyhow::Result<()> {
             }
             TasksAction::Rebuild { id, all } => {
                 let meta = storage.load_meta(*id).map_err(|e| anyhow::anyhow!("{e}"))?;
-                let results = storage
-                    .load_results(*id)
-                    .map_err(|e| anyhow::anyhow!("{e}"))?;
+                let results = storage.load_results(*id).map_err(|e| anyhow::anyhow!("{e}"))?;
 
                 // Rebuild by re-scanning endpoints
                 let target_url = if meta.target.starts_with("url:") {
@@ -286,15 +269,13 @@ async fn main() -> anyhow::Result<()> {
                         .iter()
                         .map(|r| {
                             let mut headers = Vec::new();
-                            if let Some(ref h) = crate::types::auth_to_header(&rebuild_config.auth)
-                            {
+                            if let Some(ref h) = crate::types::auth_to_header(&rebuild_config.auth) {
                                 headers.push(h.clone());
                             }
                             Endpoint {
                                 method: reqwest::Method::from_bytes(r.endpoint_method.as_bytes())
                                     .unwrap_or(reqwest::Method::GET),
-                                url: reqwest::Url::parse(&r.endpoint_url)
-                                    .unwrap_or_else(|_| target_url.clone()),
+                                url: reqwest::Url::parse(&r.endpoint_url).unwrap_or_else(|_| target_url.clone()),
                                 headers,
                                 body: None,
                                 expected_status: None,
@@ -309,15 +290,13 @@ async fn main() -> anyhow::Result<()> {
                         .filter(|r| r.status_code == 0 || r.status_code >= 400)
                         .map(|r| {
                             let mut headers = Vec::new();
-                            if let Some(ref h) = crate::types::auth_to_header(&rebuild_config.auth)
-                            {
+                            if let Some(ref h) = crate::types::auth_to_header(&rebuild_config.auth) {
                                 headers.push(h.clone());
                             }
                             Endpoint {
                                 method: reqwest::Method::from_bytes(r.endpoint_method.as_bytes())
                                     .unwrap_or(reqwest::Method::GET),
-                                url: reqwest::Url::parse(&r.endpoint_url)
-                                    .unwrap_or_else(|_| target_url.clone()),
+                                url: reqwest::Url::parse(&r.endpoint_url).unwrap_or_else(|_| target_url.clone()),
                                 headers,
                                 body: None,
                                 expected_status: None,
@@ -332,10 +311,7 @@ async fn main() -> anyhow::Result<()> {
                     return Ok(());
                 }
 
-                tracing::info!(
-                    "Rebuilding task {id}: re-scanning {} endpoints",
-                    target_endpoints.len()
-                );
+                tracing::info!("Rebuilding task {id}: re-scanning {} endpoints", target_endpoints.len());
                 let target_endpoints_len = target_endpoints.len();
                 let new_results = runner.run(target_endpoints).await;
 
@@ -343,8 +319,7 @@ async fn main() -> anyhow::Result<()> {
                 let mut merged: Vec<types::ResponseResult> = results;
                 for new_r in new_results {
                     let found = merged.iter_mut().find(|old| {
-                        old.endpoint_url == new_r.endpoint_url
-                            && old.endpoint_method == new_r.endpoint_method
+                        old.endpoint_url == new_r.endpoint_url && old.endpoint_method == new_r.endpoint_method
                     });
                     if let Some(old) = found {
                         *old = new_r;
@@ -365,12 +340,7 @@ async fn main() -> anyhow::Result<()> {
                     ..meta
                 };
                 storage
-                    .save(
-                        &updated_meta,
-                        &merged,
-                        !rebuild_config.no_bodies,
-                        rebuild_config.raw,
-                    )
+                    .save(&updated_meta, &merged, !rebuild_config.no_bodies, rebuild_config.raw)
                     .map_err(|e| anyhow::anyhow!("{e}"))?;
 
                 println!(
@@ -404,10 +374,7 @@ async fn main() -> anyhow::Result<()> {
                 for (idx, target) in all_targets.iter().enumerate() {
                     let item = task::QueueItem {
                         queue_id: format!("q-{:04}", existing + idx),
-                        command: if target.ends_with(".json")
-                            || target.ends_with(".yaml")
-                            || target.ends_with(".yml")
-                        {
+                        command: if target.ends_with(".json") || target.ends_with(".yaml") || target.ends_with(".yml") {
                             "spec".into()
                         } else {
                             "url".into()
@@ -427,9 +394,7 @@ async fn main() -> anyhow::Result<()> {
                 println!("Queued {} target(s) for scanning.", all_targets.len());
                 return Ok(());
             }
-            TasksAction::Run {
-                parallel: _concurrency,
-            } => {
+            TasksAction::Run { parallel: _concurrency } => {
                 let queue_path = storage.queue_path();
                 let recovered = task::recover_crashed(&queue_path).map_err(e)?;
                 if recovered > 0 {
@@ -441,14 +406,11 @@ async fn main() -> anyhow::Result<()> {
                     // SSRF guard: reject private/internal IPs before fetching
                     let url = format!(
                         "https://{}",
-                        item.target
-                            .trim_start_matches("https://")
-                            .trim_start_matches("http://")
+                        item.target.trim_start_matches("https://").trim_start_matches("http://")
                     );
                     if !is_safe_url(&url) {
                         let err = format!("refused unsafe URL (private/internal): {url}");
-                        task::complete(&queue_path, &item.queue_id, None, Some(err.clone()))
-                            .map_err(e)?;
+                        task::complete(&queue_path, &item.queue_id, None, Some(err.clone())).map_err(e)?;
                         println!("  ✗ {err}");
                         processed += 1;
                         continue;
@@ -490,10 +452,7 @@ async fn main() -> anyhow::Result<()> {
                             let task_id = task::index::next_id(&storage.index_path());
                             let meta = task::TaskMeta {
                                 task_id,
-                                task_name: format!(
-                                    "queue-{}",
-                                    item.target.replace([':', '/'], "-")
-                                ),
+                                task_name: format!("queue-{}", item.target.replace([':', '/'], "-")),
                                 task_tags: vec!["queued".into()],
                                 cli_version: env!("CARGO_PKG_VERSION").into(),
                                 created_at: util::now_iso(),
@@ -512,13 +471,11 @@ async fn main() -> anyhow::Result<()> {
                                 exit_code: 0,
                             };
                             storage.save(&meta, &results, false, false).map_err(e)?;
-                            task::complete(&queue_path, &item.queue_id, Some(task_id), None)
-                                .map_err(e)?;
+                            task::complete(&queue_path, &item.queue_id, Some(task_id), None).map_err(e)?;
                             println!("  ✓ Completed as task {task_id}");
                         }
                         Err(err) => {
-                            task::complete(&queue_path, &item.queue_id, None, Some(err.clone()))
-                                .map_err(e)?;
+                            task::complete(&queue_path, &item.queue_id, None, Some(err.clone())).map_err(e)?;
                             println!("  ✗ Failed: {err}");
                         }
                     }
@@ -617,10 +574,9 @@ async fn main() -> anyhow::Result<()> {
         // Merge: replace old failed results with new ones (matched by URL+method)
         let mut merged: Vec<types::ResponseResult> = state.existing_results;
         for new_r in new_results {
-            let found = merged.iter_mut().find(|old| {
-                old.endpoint_url == new_r.endpoint_url
-                    && old.endpoint_method == new_r.endpoint_method
-            });
+            let found = merged
+                .iter_mut()
+                .find(|old| old.endpoint_url == new_r.endpoint_url && old.endpoint_method == new_r.endpoint_method);
             if let Some(old) = found {
                 *old = new_r;
             } else {
@@ -639,12 +595,7 @@ async fn main() -> anyhow::Result<()> {
             ..meta
         };
         storage
-            .save(
-                &updated_meta,
-                &merged,
-                !resume_config.no_bodies,
-                resume_config.raw,
-            )
+            .save(&updated_meta, &merged, !resume_config.no_bodies, resume_config.raw)
             .map_err(|e| anyhow::anyhow!("Failed to save resumed task: {e}"))?;
         task::resume::clear_checkpoint(&storage, *task_id);
 
@@ -667,8 +618,7 @@ async fn main() -> anyhow::Result<()> {
             .or_else(|_| reqwest::Url::parse(&format!("https://{url}")))
             .map_err(|e| anyhow::anyhow!("invalid capture URL: {e}"))?;
 
-        std::fs::create_dir_all(output)
-            .map_err(|e| anyhow::anyhow!("failed to create output dir: {e}"))?;
+        std::fs::create_dir_all(output).map_err(|e| anyhow::anyhow!("failed to create output dir: {e}"))?;
 
         // Fetch and save the page
         let client = reqwest::Client::builder()
@@ -680,8 +630,7 @@ async fn main() -> anyhow::Result<()> {
 
         if *html {
             let html_path = output.join("index.html");
-            std::fs::write(&html_path, &body)
-                .map_err(|e| anyhow::anyhow!("failed to save HTML: {e}"))?;
+            std::fs::write(&html_path, &body).map_err(|e| anyhow::anyhow!("failed to save HTML: {e}"))?;
             tracing::info!("Saved HTML ({} bytes) to {:?}", body.len(), html_path);
         }
 
@@ -692,18 +641,10 @@ async fn main() -> anyhow::Result<()> {
                 Ok(js_eps) => {
                     let urls = crate::parser::js_bundle::to_scan_urls(&js_eps, &base_url);
                     let api_path = output.join("api_endpoints.txt");
-                    let content: String = urls
-                        .iter()
-                        .map(|u| u.to_string())
-                        .collect::<Vec<_>>()
-                        .join("\n");
+                    let content: String = urls.iter().map(|u| u.to_string()).collect::<Vec<_>>().join("\n");
                     std::fs::write(&api_path, &content)
                         .map_err(|e| anyhow::anyhow!("failed to save endpoints: {e}"))?;
-                    tracing::info!(
-                        "Found {} API endpoints, saved to {:?}",
-                        urls.len(),
-                        api_path
-                    );
+                    tracing::info!("Found {} API endpoints, saved to {:?}", urls.len(), api_path);
                 }
                 Err(e) => tracing::warn!("JS bundle scan failed: {e}"),
             }
@@ -714,14 +655,7 @@ async fn main() -> anyhow::Result<()> {
         if *screenshot {
             use futures_util::StreamExt;
             let shot_path = output.join("screenshot.png");
-            match crate::scan::browser::screenshot(
-                &base_url,
-                &shot_path,
-                g.headed,
-                g.proxy.as_deref(),
-            )
-            .await
-            {
+            match crate::scan::browser::screenshot(&base_url, &shot_path, g.headed, g.proxy.as_deref()).await {
                 Ok(_) => tracing::info!("Screenshot saved to {:?}", shot_path),
                 Err(e) => tracing::warn!("Screenshot failed: {e}"),
             }
@@ -744,10 +678,7 @@ async fn main() -> anyhow::Result<()> {
         let port_list = match ports.as_str() {
             "default" => scan::ip::DEFAULT_PORTS.to_vec(),
             "extended" => scan::ip::EXTENDED_PORTS.to_vec(),
-            custom => custom
-                .split(',')
-                .filter_map(|s| s.trim().parse::<u16>().ok())
-                .collect(),
+            custom => custom.split(',').filter_map(|s| s.trim().parse::<u16>().ok()).collect(),
         };
 
         let timeout = std::time::Duration::from_millis(*timeout_ms);
@@ -755,37 +686,22 @@ async fn main() -> anyhow::Result<()> {
 
         match g.output.as_str() {
             "json" => {
-                let json = serde_json::to_string_pretty(&result)
-                    .unwrap_or_else(|_| "{}".to_string());
+                let json = serde_json::to_string_pretty(&result).unwrap_or_else(|_| "{}".to_string());
                 println!("{json}");
             }
             _ => {
                 println!("{}", result.summary());
                 for p in &result.ports {
                     if p.open {
-                        let svc = p
-                            .service
-                            .as_deref()
-                            .map(|s| format!(" ({s})"))
-                            .unwrap_or_default();
-                        let banner = p
-                            .banner
-                            .as_deref()
-                            .map(|b| format!(" — {b}"))
-                            .unwrap_or_default();
-                        let lat = p
-                            .latency_ms
-                            .map(|l| format!("  {l:.1}ms"))
-                            .unwrap_or_default();
+                        let svc = p.service.as_deref().map(|s| format!(" ({s})")).unwrap_or_default();
+                        let banner = p.banner.as_deref().map(|b| format!(" — {b}")).unwrap_or_default();
+                        let lat = p.latency_ms.map(|l| format!("  {l:.1}ms")).unwrap_or_default();
                         println!("  {:<6} open{svc}{banner}{lat}", p.port);
                     }
                 }
                 if *os {
                     if let Some(ref os_info) = result.os {
-                        let guess = os_info
-                            .guessed_os
-                            .as_deref()
-                            .unwrap_or("unknown");
+                        let guess = os_info.guessed_os.as_deref().unwrap_or("unknown");
                         println!("  OS: {guess} (TTL={})", os_info.ttl);
                     }
                 }
@@ -815,8 +731,7 @@ async fn main() -> anyhow::Result<()> {
             let base_url = reqwest::Url::parse(target)
                 .or_else(|_| reqwest::Url::parse(&format!("https://{target}")))
                 .map_err(|e| anyhow::anyhow!("invalid fuzz target: {e}"))?;
-            let scan_config =
-                config::ScanConfig::from_cli_global(g, types::Target::Url(base_url.clone()))?;
+            let scan_config = config::ScanConfig::from_cli_global(g, types::Target::Url(base_url.clone()))?;
             let opts = fuzz::FuzzOpts {
                 wordlist: wordlist.clone(),
                 mc: mc.clone(),
@@ -843,9 +758,7 @@ async fn main() -> anyhow::Result<()> {
             unreachable!("ip mode handled above")
         }
         cmd => {
-            let config = config::ScanConfig::from_cli(cli::Cli {
-                command: cmd.clone(),
-            })?;
+            let config = config::ScanConfig::from_cli(cli::Cli { command: cmd.clone() })?;
             let mut results: Vec<crate::types::ResponseResult> = match &config.target {
                 types::Target::Spec(_) => scan::spec::run_spec_scan(&config).await?,
                 types::Target::Url(_) => scan::url::run_url_scan(&config).await?,
@@ -912,11 +825,7 @@ async fn main() -> anyhow::Result<()> {
                     command: cmd_str.to_string(),
                     target: config.target.to_string(),
                     config: serde_json::json!({}),
-                    git: if config.git {
-                        util::capture_git_info()
-                    } else {
-                        None
-                    },
+                    git: if config.git { util::capture_git_info() } else { None },
                     endpoint_count: results.len(),
                     result_summary: summary,
                     storage: task::StorageInfo {

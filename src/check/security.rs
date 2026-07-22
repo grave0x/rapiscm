@@ -22,11 +22,7 @@ fn check_csp(headers: &[(String, String)]) -> Check {
     Check {
         name: "CSP".into(),
         passed: present,
-        severity: if present {
-            Severity::Info
-        } else {
-            Severity::Warn
-        },
+        severity: if present { Severity::Info } else { Severity::Warn },
         message: if present {
             "Content-Security-Policy header present".into()
         } else {
@@ -40,11 +36,7 @@ fn check_hsts(headers: &[(String, String)]) -> Check {
     Check {
         name: "HSTS".into(),
         passed: present,
-        severity: if present {
-            Severity::Info
-        } else {
-            Severity::Warn
-        },
+        severity: if present { Severity::Info } else { Severity::Warn },
         message: if present {
             "Strict-Transport-Security header present".into()
         } else {
@@ -58,11 +50,7 @@ fn check_x_content_type_options(headers: &[(String, String)]) -> Check {
     Check {
         name: "X-Content-Type-Options".into(),
         passed: present,
-        severity: if present {
-            Severity::Info
-        } else {
-            Severity::Warn
-        },
+        severity: if present { Severity::Info } else { Severity::Warn },
         message: if present {
             "X-Content-Type-Options header present".into()
         } else {
@@ -115,14 +103,8 @@ mod tests {
     #[test]
     fn test_all_headers_present() {
         let headers = vec![
-            (
-                "content-security-policy".into(),
-                "default-src 'self'".into(),
-            ),
-            (
-                "strict-transport-security".into(),
-                "max-age=31536000".into(),
-            ),
+            ("content-security-policy".into(), "default-src 'self'".into()),
+            ("strict-transport-security".into(), "max-age=31536000".into()),
             ("x-content-type-options".into(), "nosniff".into()),
             ("x-frame-options".into(), "DENY".into()),
             ("cache-control".into(), "no-store".into()),
@@ -140,10 +122,7 @@ mod tests {
 
     #[test]
     fn test_case_insensitive_matching() {
-        let headers = vec![(
-            "CONTENT-SECURITY-POLICY".into(),
-            "default-src 'self'".into(),
-        )];
+        let headers = vec![("CONTENT-SECURITY-POLICY".into(), "default-src 'self'".into())];
         let checks = check_security_headers(&headers);
         assert!(checks[0].passed);
     }

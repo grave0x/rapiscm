@@ -36,8 +36,7 @@ impl ScanRunner {
                 reqwest::redirect::Policy::none()
             });
         if let Some(ref proxy_url) = config.proxy {
-            let proxy = reqwest::Proxy::all(proxy_url)
-                .map_err(|e| crate::error::Error::InvalidUrl(e.to_string()))?;
+            let proxy = reqwest::Proxy::all(proxy_url).map_err(|e| crate::error::Error::InvalidUrl(e.to_string()))?;
             builder = builder.proxy(proxy);
         }
         // Apply ghost UA if enabled

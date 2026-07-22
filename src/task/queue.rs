@@ -61,9 +61,7 @@ pub fn enqueue(path: &Path, item: QueueItem) -> Result<(), String> {
 /// Find and mark the first `Pending` item as `Running`. Returns it.
 pub fn dequeue(path: &Path) -> Option<QueueItem> {
     let mut items = load(path);
-    let idx = items
-        .iter()
-        .position(|i| i.status == QueueItemStatus::Pending)?;
+    let idx = items.iter().position(|i| i.status == QueueItemStatus::Pending)?;
     items[idx].status = QueueItemStatus::Running;
     items[idx].started_at = Some(crate::util::now_iso());
     let item = items[idx].clone();
@@ -72,12 +70,7 @@ pub fn dequeue(path: &Path) -> Option<QueueItem> {
 }
 
 /// Mark an item as completed or failed.
-pub fn complete(
-    path: &Path,
-    queue_id: &str,
-    task_id: Option<TaskId>,
-    error: Option<String>,
-) -> Result<(), String> {
+pub fn complete(path: &Path, queue_id: &str, task_id: Option<TaskId>, error: Option<String>) -> Result<(), String> {
     let mut items = load(path);
     if let Some(item) = items.iter_mut().find(|i| i.queue_id == queue_id) {
         item.status = if error.is_some() {

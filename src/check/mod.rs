@@ -18,11 +18,8 @@ pub fn run_checks(result: &mut ResponseResult) {
     let header_checks = security::check_security_headers(&result.response_headers);
     result.checks.extend(header_checks);
 
-    let schema_checks = schema::check_response_schema(
-        result.status_code,
-        &result.response_body,
-        result.expected_status,
-    );
+    let schema_checks =
+        schema::check_response_schema(result.status_code, &result.response_body, result.expected_status);
     result.checks.extend(schema_checks);
 
     let tracker_checks = trackers::check_trackers(&result.response_body, &result.response_headers);

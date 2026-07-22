@@ -99,14 +99,8 @@ mod tests {
 
     #[test]
     fn test_extract_domain() {
-        assert_eq!(
-            extract_domain("https://www.example.com/page"),
-            "example.com"
-        );
-        assert_eq!(
-            extract_domain("http://sub.example.com:8080/path"),
-            "sub.example.com"
-        );
+        assert_eq!(extract_domain("https://www.example.com/page"), "example.com");
+        assert_eq!(extract_domain("http://sub.example.com:8080/path"), "sub.example.com");
         assert_eq!(extract_domain("example.com"), "example.com");
     }
 }

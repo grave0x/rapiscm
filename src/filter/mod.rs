@@ -9,34 +9,19 @@ use crate::types::{Endpoint, ResponseResult};
 pub fn endpoint_passes(ep: &Endpoint, config: &ScanConfig) -> bool {
     // Method filters
     let method = ep.method.as_str();
-    if !config.filter_method.is_empty()
-        && !config
-            .filter_method
-            .iter()
-            .any(|m| m.eq_ignore_ascii_case(method))
-    {
+    if !config.filter_method.is_empty() && !config.filter_method.iter().any(|m| m.eq_ignore_ascii_case(method)) {
         return false;
     }
-    if config
-        .exclude_method
-        .iter()
-        .any(|m| m.eq_ignore_ascii_case(method))
-    {
+    if config.exclude_method.iter().any(|m| m.eq_ignore_ascii_case(method)) {
         return false;
     }
 
     // Path filters (simple substring match for now, could upgrade to glob)
     let path = ep.url.path();
-    if !config.filter_path.is_empty()
-        && !config.filter_path.iter().any(|p| path.contains(p.as_str()))
-    {
+    if !config.filter_path.is_empty() && !config.filter_path.iter().any(|p| path.contains(p.as_str())) {
         return false;
     }
-    if config
-        .exclude_path
-        .iter()
-        .any(|p| path.contains(p.as_str()))
-    {
+    if config.exclude_path.iter().any(|p| path.contains(p.as_str())) {
         return false;
     }
 
@@ -164,8 +149,7 @@ mod tests {
     fn config_with(f: impl FnOnce(&mut GlobalArgs)) -> ScanConfig {
         let mut g = make_args();
         f(&mut g);
-        ScanConfig::from_cli_global(&g, Target::Url(Url::parse("https://example.com").unwrap()))
-            .unwrap()
+        ScanConfig::from_cli_global(&g, Target::Url(Url::parse("https://example.com").unwrap())).unwrap()
     }
 
     #[test]

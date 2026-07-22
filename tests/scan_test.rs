@@ -67,9 +67,7 @@ async fn setup_mock(html: &str) -> MockServer {
 
     Mock::given(method("GET"))
         .and(mock_path("/"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_raw(html.as_bytes().to_vec(), "text/html".into()),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_raw(html.as_bytes().to_vec(), "text/html".into()))
         .mount(&server)
         .await;
 
@@ -118,18 +116,12 @@ async fn test_url_mode_discovers_endpoints() {
     assert!(!results.is_empty(), "should discover endpoints");
 
     let urls: Vec<&str> = results.iter().map(|r| r.endpoint_url.as_str()).collect();
-    assert!(
-        urls.iter().any(|u| u.contains("/api/users")),
-        "should find /api/users"
-    );
+    assert!(urls.iter().any(|u| u.contains("/api/users")), "should find /api/users");
     assert!(
         urls.iter().any(|u| u.contains("/api/health")),
         "should find /api/health"
     );
-    assert!(
-        urls.iter().any(|u| u.contains("/api/login")),
-        "should find /api/login"
-    );
+    assert!(urls.iter().any(|u| u.contains("/api/login")), "should find /api/login");
 }
 
 #[tokio::test]
@@ -141,9 +133,7 @@ async fn test_url_mode_runs_checks() {
     let config = base_config(port);
     let results = rapiscm::scan::url::run_url_scan(&config).await.unwrap();
 
-    let health = results
-        .iter()
-        .find(|r| r.endpoint_url.contains("/api/health"));
+    let health = results.iter().find(|r| r.endpoint_url.contains("/api/health"));
     assert!(health.is_some(), "should have scanned /api/health");
 
     let health = health.unwrap();
@@ -180,10 +170,7 @@ async fn test_spec_mode_parses_endpoints() {
     let get_user_id = endpoints
         .iter()
         .find(|e| e.url.path().contains("/users/42") && e.method == reqwest::Method::GET);
-    assert!(
-        get_user_id.is_some(),
-        "should have GET /users/42 with param filled"
-    );
+    assert!(get_user_id.is_some(), "should have GET /users/42 with param filled");
 }
 
 #[tokio::test]

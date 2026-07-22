@@ -102,8 +102,7 @@ pub async fn run_discover(config: &DiscoverConfig) -> Result<Vec<DiscoveredDomai
     }
 
     // ── Source 4: Google dork search (gated) ──
-    if let (Some(api_key), Some(cx)) = (&config.api_keys.google_api_key, &config.api_keys.google_cx)
-    {
+    if let (Some(api_key), Some(cx)) = (&config.api_keys.google_api_key, &config.api_keys.google_cx) {
         tracing::info!("[discover] Google search for \"{org}\"...");
         match search::google_search(org, api_key, cx).await {
             Ok(domains) => {
@@ -178,11 +177,10 @@ pub fn save_report(domains: &[DiscoveredDomain], org: &str) -> Result<()> {
     let dir: PathBuf = ["reports", "corps", org].iter().collect();
     fs::create_dir_all(&dir)?;
 
-    let json =
-        serde_json::to_string_pretty(domains).map_err(|e| crate::error::Error::DiscoveryParse {
-            src: "serialize",
-            detail: e.to_string(),
-        })?;
+    let json = serde_json::to_string_pretty(domains).map_err(|e| crate::error::Error::DiscoveryParse {
+        src: "serialize",
+        detail: e.to_string(),
+    })?;
     fs::write(dir.join("discovery.json"), &json)?;
 
     let lines: Vec<&str> = domains.iter().map(|d| d.domain.as_str()).collect();

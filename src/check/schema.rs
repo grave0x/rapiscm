@@ -7,11 +7,7 @@ use crate::types::{Check, Severity};
 /// Checks performed:
 /// - If the endpoint has an expected status code, compare with actual.
 /// - If the body looks like JSON, verify it's valid.
-pub fn check_response_schema(
-    status_code: u16,
-    response_body: &[u8],
-    expected_status: Option<u16>,
-) -> Vec<Check> {
+pub fn check_response_schema(status_code: u16, response_body: &[u8], expected_status: Option<u16>) -> Vec<Check> {
     let mut checks = Vec::new();
 
     // Expected status check.
@@ -86,21 +82,13 @@ mod tests {
     #[test]
     fn test_expected_status_match() {
         let checks = check_response_schema(200, b"{}", Some(200));
-        assert!(
-            checks
-                .iter()
-                .any(|c| c.name == "Response Status" && c.passed)
-        );
+        assert!(checks.iter().any(|c| c.name == "Response Status" && c.passed));
     }
 
     #[test]
     fn test_expected_status_mismatch() {
         let checks = check_response_schema(404, b"{}", Some(200));
-        assert!(
-            checks
-                .iter()
-                .any(|c| c.name == "Response Status" && !c.passed)
-        );
+        assert!(checks.iter().any(|c| c.name == "Response Status" && !c.passed));
     }
 
     #[test]
@@ -112,10 +100,6 @@ mod tests {
     #[test]
     fn test_invalid_json_body() {
         let checks = check_response_schema(200, b"not json", None);
-        assert!(
-            checks
-                .iter()
-                .any(|c| c.name == "Response Body" && !c.passed)
-        );
+        assert!(checks.iter().any(|c| c.name == "Response Body" && !c.passed));
     }
 }

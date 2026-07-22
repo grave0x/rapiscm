@@ -135,8 +135,7 @@ pub fn compute_percentiles(mut times: Vec<u64>) -> (u64, u64, u64) {
     }
     times.sort_unstable();
     let len = times.len();
-    let idx =
-        |pct: usize| -> usize { (len.saturating_sub(1) * pct / 100).min(len.saturating_sub(1)) };
+    let idx = |pct: usize| -> usize { (len.saturating_sub(1) * pct / 100).min(len.saturating_sub(1)) };
     (times[idx(50)], times[idx(90)], times[idx(99)])
 }
 

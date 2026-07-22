@@ -8,9 +8,7 @@ use crate::task::GitInfo;
 
 /// ISO-8601-like timestamp (UTC, second precision).
 pub fn now_iso() -> String {
-    let dur = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
+    let dur = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
     let secs = dur.as_secs();
     // Convert to yyyy-mm-ddThh:mm:ssZ
     let days = secs / 86400;
@@ -74,9 +72,7 @@ pub fn capture_git_info() -> Option<GitInfo> {
                     .ok()
                     .and_then(|o| {
                         if o.status.success() {
-                            String::from_utf8(o.stdout)
-                                .ok()
-                                .map(|s| s.trim().to_string())
+                            String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string())
                         } else {
                             None
                         }
@@ -103,9 +99,7 @@ pub fn capture_git_info() -> Option<GitInfo> {
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                String::from_utf8(o.stdout)
-                    .ok()
-                    .map(|s| s.trim().to_string())
+                String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string())
             } else {
                 None
             }

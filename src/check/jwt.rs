@@ -104,29 +104,29 @@ pub fn analyze_jwt(token: &str) -> Vec<Check> {
     checks
 }
 
-fn decode_parts(
-    header_b64: &str,
-    payload_b64: &str,
-) -> Result<(serde_json::Value, serde_json::Value), String> {
+fn decode_parts(header_b64: &str, payload_b64: &str) -> Result<(serde_json::Value, serde_json::Value), String> {
     let header_bytes = decode_b64_url(header_b64)?;
     let payload_bytes = decode_b64_url(payload_b64)?;
-    let header: serde_json::Value =
-        serde_json::from_slice(&header_bytes).map_err(|e| format!("header JSON: {e}"))?;
+    let header: serde_json::Value = serde_json::from_slice(&header_bytes).map_err(|e| format!("header JSON: {e}"))?;
     let payload: serde_json::Value =
         serde_json::from_slice(&payload_bytes).map_err(|e| format!("payload JSON: {e}"))?;
     Ok((header, payload))
 }
 
 fn decode_b64_url(input: &str) -> Result<Vec<u8>, String> {
-    let engine = GeneralPurpose::new(&URL_SAFE, GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true));
-    engine
-        .decode(input)
-        .map_err(|e| format!("base64 decode: {e}"))
+    let engine = GeneralPurpose::new(
+        &URL_SAFE,
+        GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
+    );
+    engine.decode(input).map_err(|e| format!("base64 decode: {e}"))
 }
 
 fn check_algorithm(alg: &str, checks: &mut Vec<Check>) {
     let is_symmetric = matches!(alg, "HS256" | "HS384" | "HS512");
-    let is_asymmetric = matches!(alg, "RS256" | "RS384" | "RS512" | "ES256" | "ES384" | "ES512" | "PS256" | "PS384" | "PS512");
+    let is_asymmetric = matches!(
+        alg,
+        "RS256" | "RS384" | "RS512" | "ES256" | "ES384" | "ES512" | "PS256" | "PS384" | "PS512"
+    );
     let is_known = is_symmetric || is_asymmetric || alg.eq_ignore_ascii_case("none");
 
     if !is_known {
@@ -215,14 +215,22 @@ mod tests {
     fn test_no_exp_claim() {
         let token = make_jwt(r#"{"alg":"RS256"}"#, r#"{"sub":"123"}"#);
         let checks = analyze_jwt(&token);
-        assert!(checks.iter().any(|c| c.name == "JWT Expiration" && !c.passed && c.message.contains("no exp")));
+        assert!(
+            checks
+                .iter()
+                .any(|c| c.name == "JWT Expiration" && !c.passed && c.message.contains("no exp"))
+        );
     }
 
     #[test]
     fn test_none_algorithm() {
         let token = make_jwt(r#"{"alg":"none"}"#, r#"{"sub":"admin"}"#);
         let checks = analyze_jwt(&token);
-        assert!(checks.iter().any(|c| c.name == "JWT Algorithm" && !c.passed && c.message.contains("none")));
+        assert!(
+            checks
+                .iter()
+                .any(|c| c.name == "JWT Algorithm" && !c.passed && c.message.contains("none"))
+        );
     }
 
     #[test]
