@@ -83,6 +83,7 @@ fn get_global(cli: &cli::Cli) -> &cli::GlobalArgs {
         cli::Command::Session { global, .. } => global,
         cli::Command::Tasks { global, .. } => global,
         cli::Command::Capture { global, .. } => global,
+        cli::Command::Ip { global, .. } => global,
     }
 }
 
@@ -730,6 +731,70 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    // ── Ip subcommand: TCP port scan ──
+    #[cfg(feature = "ip")]
+    if let cli::Command::Ip {
+        host,
+        ports,
+        timeout_ms,
+        os,
+        ..
+    } = &cli.command
+    {
+        let port_list = match ports.as_str() {
+            "default" => scan::ip::DEFAULT_PORTS.to_vec(),
+            "extended" => scan::ip::EXTENDED_PORTS.to_vec(),
+            custom => custom
+                .split(',')
+                .filter_map(|s| s.trim().parse::<u16>().ok())
+                .collect(),
+        };
+
+        let timeout = std::time::Duration::from_millis(*timeout_ms);
+        let result = scan::ip::run_ip_scan(host, &port_list, timeout);
+
+        match g.output.as_str() {
+            "json" => {
+                let json = serde_json::to_string_pretty(&result)
+                    .unwrap_or_else(|_| "{}".to_string());
+                println!("{json}");
+            }
+            _ => {
+                println!("{}", result.summary());
+                for p in &result.ports {
+                    if p.open {
+                        let svc = p
+                            .service
+                            .as_deref()
+                            .map(|s| format!(" ({s})"))
+                            .unwrap_or_default();
+                        let banner = p
+                            .banner
+                            .as_deref()
+                            .map(|b| format!(" — {b}"))
+                            .unwrap_or_default();
+                        let lat = p
+                            .latency_ms
+                            .map(|l| format!("  {l:.1}ms"))
+                            .unwrap_or_default();
+                        println!("  {:<6} open{svc}{banner}{lat}", p.port);
+                    }
+                }
+                if *os {
+                    if let Some(ref os_info) = result.os {
+                        let guess = os_info
+                            .guessed_os
+                            .as_deref()
+                            .unwrap_or("unknown");
+                        println!("  OS: {guess} (TTL={})", os_info.ttl);
+                    }
+                }
+            }
+        }
+
+        return Ok(());
+    }
+
     match &cli.command {
         cli::Command::Fuzz {
             target,
@@ -773,6 +838,9 @@ async fn main() -> anyhow::Result<()> {
         }
         cli::Command::Session { .. } => {
             unreachable!("session mode handled above")
+        }
+        cli::Command::Ip { .. } => {
+            unreachable!("ip mode handled above")
         }
         cmd => {
             let config = config::ScanConfig::from_cli(cli::Cli {

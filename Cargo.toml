@@ -18,6 +18,7 @@ lto = true
 [features]
 default = []
 browser = ["dep:chromiumoxide", "dep:fantoccini"]
+ip = []
 
 [dependencies]
 anyhow = "1"

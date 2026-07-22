@@ -184,6 +184,28 @@ pub enum Command {
         #[command(flatten)]
         global: GlobalArgs,
     },
+
+    /// TCP port scan + service detection + OS fingerprint
+    /// (requires --features ip)
+    Ip {
+        /// Target host or IP address
+        host: String,
+
+        /// Ports to scan: comma-separated list, "default", or "extended"
+        #[arg(short = 'p', long, default_value = "default")]
+        ports: String,
+
+        /// Connection timeout per port in milliseconds
+        #[arg(long, default_value = "1000")]
+        timeout_ms: u64,
+
+        /// Attempt OS fingerprint via TCP stack analysis
+        #[arg(long)]
+        os: bool,
+
+        #[command(flatten)]
+        global: GlobalArgs,
+    },
 }
 
 #[derive(Subcommand, Clone)]

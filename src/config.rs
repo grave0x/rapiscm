@@ -201,6 +201,7 @@ impl ScanConfig {
                 let parsed = parse_url(&url)?;
                 (Target::Url(parsed), global)
             }
+            Command::Ip { .. } => unreachable!("ip mode handled separately in main"),
         };
 
         let headers = parse_headers(&global.headers)?;
