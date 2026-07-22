@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.2.0] — 2026-07-22
+
+### Added
+- **OpenAPI 3.1 webhook extraction** — secondary raw parse extracts webhooks as scan targets
+- **SARIF 2.1.0 export** (`-o sarif`) — GitHub Code Scanning / GitLab SAST compatible
+- **IP scan mode** (`rapiscm ip`) — TCP connect scan, service detection, OS fingerprint (`--features ip`)
+- **Fuzz mode expansion** — keyword-based URL construction across all 5 modes (path, param, method, header, body)
+- **Release CI** — GitHub Actions builds x86_64 + aarch64 binaries on tag
+- **Dockerfile** — multi-stage musl build, scratch runtime
+- **Homebrew formula** — template at `homebrew/rapiscm.rb`
+- crates.io metadata (description, repository, keywords, categories, rust-version)
+
+### Changed
+- Fuzz engine refactored: all modes use consistent `build_urls()` with keyword replacement
+- CLI help text updated for `-o sarif` output option
+- `Severity::as_str()` added for SARIF and general use
+- `default-run = "aegis"` → `"rapiscm"` (not applicable, was a different project)
+
+### Fixed
+- `tests/scan_test.rs`, `src/scan/{runner,spec,url}.rs`, `src/filter/mod.rs`: added missing `allow_cross_origin` field in test config literals
+- `src/session/mod.rs`: removed duplicate `allow_cross_origin` in stub config
+- Fuzz wordlist typo: tuple `("/actuator/info")` → string `"/actuator/info"`
+- Dead code audit: 10 `#[allow(dead_code)]` sites reviewed, 1 genuinely dead (`task::rebuild::rebuild`), 9 legitimate
+
 ## [Unreleased]
 
 ### Added

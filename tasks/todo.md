@@ -52,19 +52,24 @@ Derived from `.scratch/v0.2-release/tickets.md`
 - [x] `cargo test --features ip` — 442 pass, 0 fail
 
 ## T6: Fuzz mode expansion
-- [ ] `--mode param` fuzzes query parameters
-- [ ] `--mode method` tries different HTTP methods
-- [ ] `--mode header` injects into headers
-- [ ] `--mode body` fuzzes request bodies
-- [ ] `--wordlist paths.txt` uses custom wordlist
-- [ ] Match/filter/auto-calibrate work across all modes
+- [x] `--mode param` fuzzes query parameters with keyword URL construction
+- [x] `--mode method` tries HTTP methods on keyword-replaced URLs
+- [x] `--mode header` injects fuzzed headers on keyword URLs
+- [x] `--mode body` POSTs word-based bodies to keyword URLs
+- [x] `--wordlist paths.txt` uses custom wordlist (already worked)
+- [x] Match/filter/auto-calibrate work across all modes
+- [x] Fixed wordlist.rs typo (tuple → string)
+- [x] Keyword replacement or path appending for all URL construction
+- [x] `cargo test` passes
 
 ## T7: Batch task queue
-- [ ] `tasks queue` adds to queue
-- [ ] `tasks run` executes in FIFO order
-- [ ] `tasks status` shows counts by state
-- [ ] Crash recovery: interrupted tasks marked failed
-- [ ] Queue persists across restarts
+- [x] `tasks queue` adds targets to queue (spec files, URLs, file-based lists)
+- [x] `tasks run` processes queue items sequentially
+- [x] `tasks status` shows pending/running/completed/failed counts
+- [x] Crash recovery: `recover_crashed()` marks interrupted items as failed
+- [x] Queue persists as JSON across process restarts
+- [x] CLI subcommands wired in main.rs dispatch
+- [x] `QueueItem` with full metadata (status, timestamps, retries, errors)
 
 ## T8: Release
 - [ ] Version bumped to 0.2.0
