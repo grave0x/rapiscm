@@ -43,11 +43,13 @@ Derived from `.scratch/v0.2-release/tickets.md`
 - [ ] *Note:* SARIF validator tooling not run (no SARIF SDK installed)
 
 ## T5: rapiscm ip mode
-- [ ] `rapiscm ip <target>` scans common ports (80, 443, 8080, etc.)
-- [ ] Service detection identifies HTTP, databases, etc.
-- [ ] OS fingerprint reports likely OS
-- [ ] Table + JSON output formats
-- [ ] Feature-gated: `cargo build` (no `--features ip`) excludes module
+- [x] `rapiscm ip <target>` scans common ports (default, extended, custom)
+- [x] Service detection identifies HTTP, SSH, databases, etc. from port numbers
+- [x] OS fingerprint reports likely OS from TTL (Linux/Unix, Windows, Solaris)
+- [x] Table + JSON output formats
+- [x] Feature-gated: `cargo build` (no `--features ip`) excludes module
+- [x] 5 unit tests in ip module
+- [x] `cargo test --features ip` — 442 pass, 0 fail
 
 ## T6: Fuzz mode expansion
 - [ ] `--mode param` fuzzes query parameters

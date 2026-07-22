@@ -102,7 +102,7 @@ pub fn api_paths() -> Vec<&'static str> {
         // Common framework paths
         "/actuator",
         "/actuator/health",
-        ("/actuator/info"),
+        "/actuator/info",
         "/__admin",
         "/__debug",
         "/__test",

@@ -74,8 +74,8 @@ pub async fn run_fuzz_scan(
     };
 
     let results = match opts.mode.as_str() {
-        "param" => runner.fuzz_params(base_url, &words, &matcher).await,
-        "method" => runner.fuzz_methods(base_url, &words, &matcher).await,
+        "param" => runner.fuzz_params(base_url, &words, &matcher, keyword).await,
+        "method" => runner.fuzz_methods(base_url, &words, &matcher, keyword).await,
         "header" => {
             runner
                 .fuzz_headers(base_url, &words, &matcher, keyword)
@@ -86,7 +86,7 @@ pub async fn run_fuzz_scan(
                 .fuzz_bodies(base_url, &words, &matcher, keyword, opts.request.as_deref())
                 .await
         }
-        _ => runner.fuzz_paths(base_url, &words, &matcher).await,
+        _ => runner.fuzz_paths(base_url, &words, &matcher, keyword).await,
     };
 
     if !results.is_empty() {
