@@ -370,6 +370,7 @@ pub fn parse_output(raw: &str) -> Result<OutputFormat> {
         "json" => Ok(OutputFormat::Json),
         "md" => Ok(OutputFormat::Markdown),
         "doc" => Ok(OutputFormat::Doc),
+        "sarif" => Ok(OutputFormat::Sarif),
         other => Err(Error::InvalidOutputFormat(other.to_string())),
     }
 }

@@ -110,6 +110,7 @@ mod tests {
     /// Minimal GlobalArgs for testing.
     fn make_args() -> GlobalArgs {
         GlobalArgs {
+            allow_cross_origin: false,
             method: None,
             headers: vec![],
             auth: None,

@@ -8,6 +8,7 @@ use rapiscm::types::{OutputFormat, Target};
 
 fn base_config(port: u16) -> ScanConfig {
     ScanConfig {
+        allow_cross_origin: false,
         target: Target::Url(reqwest::Url::parse(&format!("http://127.0.0.1:{port}")).unwrap()),
         method: None,
         headers: vec![],

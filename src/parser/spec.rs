@@ -9,15 +9,41 @@ use crate::error::{Error, Result};
 use crate::types::Endpoint;
 
 /// Parse an OpenAPI spec file into a list of endpoints.
+/// For OpenAPI 3.1+ specs, also extracts webhooks as scan targets.
 pub fn parse_spec_file(path: &Path) -> Result<Vec<Endpoint>> {
     let content = std::fs::read_to_string(path)?;
+
+    // Parse with openapiv3 for paths + operations
     let spec: OpenAPI = match path.extension().and_then(|e| e.to_str()) {
         Some("yaml") | Some("yml") => {
             serde_yaml::from_str(&content).map_err(|e| Error::SpecParse(e.to_string()))?
         }
         _ => serde_json::from_str(&content).map_err(|e| Error::SpecParse(e.to_string()))?,
     };
-    endpoints_from_spec(&spec)
+    let mut endpoints = endpoints_from_spec(&spec)?;
+
+    // For 3.1+ specs, extract webhooks from the raw document
+    // (openapiv3 v2 doesn't expose webhooks)
+    let raw: serde_json::Value = match path.extension().and_then(|e| e.to_str()) {
+        Some("yaml") | Some("yml") => {
+            let yv: serde_yaml::Value =
+                serde_yaml::from_str(&content).map_err(|e| Error::SpecParse(e.to_string()))?;
+            serde_json::to_value(yv).map_err(|e| Error::SpecParse(e.to_string()))?
+        }
+        _ => serde_json::from_str(&content).map_err(|e| Error::SpecParse(e.to_string()))?,
+    };
+
+    let version = raw
+        .get("openapi")
+        .and_then(|v| v.as_str())
+        .unwrap_or("3.0");
+
+    if version.starts_with("3.1") || version.starts_with('4') {
+        let base_url = resolve_base_url(&spec.servers);
+        endpoints.extend(extract_webhooks(&raw, &base_url));
+    }
+
+    Ok(endpoints)
 }
 
 fn endpoints_from_spec(spec: &OpenAPI) -> Result<Vec<Endpoint>> {
@@ -198,6 +224,69 @@ fn fill_remaining_params(url: &str) -> String {
     }
     result.push_str(rest);
     result
+}
+
+/// Extract webhook endpoints from an OpenAPI 3.1+ raw spec (paths + operations
+/// under the `webhooks` key). Webhooks are outbound calls the API makes TO
+/// external services — still worth scanning for security posture.
+fn extract_webhooks(raw: &serde_json::Value, base_url: &str) -> Vec<Endpoint> {
+    let webhooks = match raw.get("webhooks") {
+        Some(serde_json::Value::Object(map)) => map,
+        _ => return Vec::new(),
+    };
+
+    let mut endpoints = Vec::new();
+
+    for (name, path_item) in webhooks {
+        let obj = match path_item {
+            serde_json::Value::Object(o) => o,
+            _ => continue,
+        };
+
+        for method in ["get", "post", "put", "delete", "patch", "options", "head"] {
+            let op = match obj.get(method) {
+                Some(serde_json::Value::Object(o)) => o,
+                _ => continue,
+            };
+
+            let operation_id = op
+                .get("operationId")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            let description = op
+                .get("description")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            let hook_path = format!("/.webhooks/{}/{}", name, method);
+
+            // Try to construct a URL from any server info in the spec
+            let url = format!("{}/{}", base_url.trim_end_matches('/'), hook_path.trim_start_matches('/'));
+
+            let mut tags = match operation_id.as_deref() {
+                Some(id) => vec![format!("webhook:{}", id)],
+                None => vec![],
+            };
+            if let Some(ref _desc) = description {
+                // tags.push(format!("desc:{}", desc)); // too noisy
+            }
+            tags.push("openapi31".to_string());
+
+            endpoints.push(Endpoint {
+                method: method.to_uppercase().parse().unwrap_or(reqwest::Method::POST),
+                url: url.parse().unwrap_or_else(|_| {
+                    reqwest::Url::parse("https://localhost").unwrap()
+                }),
+                headers: Vec::new(),
+                body: None,
+                expected_status: None,
+                tags,
+            });
+        }
+    }
+
+    endpoints
 }
 
 #[cfg(test)]

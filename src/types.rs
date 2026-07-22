@@ -149,6 +149,16 @@ pub enum Severity {
     Critical,
 }
 
+impl Severity {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Info => "info",
+            Self::Warn => "warn",
+            Self::Critical => "critical",
+        }
+    }
+}
+
 /// Convert AuthConfig into an HTTP header (name, value) pair.
 pub fn auth_to_header(auth: &Option<AuthConfig>) -> Option<(String, String)> {
     match auth {
@@ -201,6 +211,8 @@ pub enum OutputFormat {
     Markdown,
     /// Structured API documentation (llm-api style).
     Doc,
+    /// SARIF 2.1.0 JSON (GitHub Code Scanning / GitLab SAST compatible).
+    Sarif,
 }
 
 /// A domain discovered for a company/organization.

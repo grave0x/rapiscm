@@ -3,6 +3,7 @@
 
 pub mod doc;
 pub mod json;
+pub mod sarif;
 pub mod site;
 pub mod summary;
 pub mod table;
@@ -20,5 +21,6 @@ pub fn format_results(results: &[ResponseResult], format: OutputFormat) -> Strin
             format!("{s}\n\n## Results\n\n{t}")
         }
         OutputFormat::Doc => doc::format_doc(results),
+        OutputFormat::Sarif => sarif::to_sarif(results, "rapiscm scan", ""),
     }
 }

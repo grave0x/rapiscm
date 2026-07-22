@@ -129,3 +129,19 @@ docs/decisions/ADR-*.md   # architecture decision records
 - CLI: `clap` derive macros
 - HTTP: `reqwest` with configurable timeouts
 - Minimize external deps: manual ANSI codes, std time, AtomicU64 IDs
+
+## Agent skills
+
+### Issue tracker
+
+Local markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical five-state labels: `needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, `wontfix`. Stored as YAML frontmatter in issue files.
+See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.

@@ -202,6 +202,7 @@ mod tests {
     async fn test_runner_handles_connection_error() {
         let config = ScanConfig {
             target: crate::types::Target::Url(reqwest::Url::parse("http://127.0.0.1:1").unwrap()),
+            allow_cross_origin: false,
             method: None,
             headers: vec![],
             auth: None,

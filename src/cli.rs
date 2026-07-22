@@ -275,8 +275,8 @@ pub struct GlobalArgs {
     #[arg(long, default_value = "10")]
     pub concurrency: usize,
 
-    /// Output format: table, json, md, doc
-    #[arg(short = 'o', long, default_value = "table", value_parser = ["table", "json", "md", "doc"])]
+    /// Output format: table, json, md, doc, sarif
+    #[arg(short = 'o', long, default_value = "table", value_parser = ["table", "json", "md", "doc", "sarif"])]
     pub output: String,
 
     /// Follow 3xx redirects

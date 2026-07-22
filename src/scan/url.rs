@@ -389,6 +389,7 @@ mod tests {
     fn test_build_client_default() {
         let config = ScanConfig {
             target: Target::Url(reqwest::Url::parse("https://example.com").unwrap()),
+            allow_cross_origin: false,
             method: None,
             headers: vec![],
             auth: None,

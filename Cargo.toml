@@ -2,7 +2,12 @@
 name = "rapiscm"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
 license = "MIT"
+description = "API security scanner — OpenAPI spec scanning, URL crawling, fuzzing, corporate domain discovery"
+repository = "https://github.com/grave0x/rapiscm"
+keywords = ["api", "security", "scanner", "openapi", "fuzzer"]
+categories = ["command-line-utilities", "development-tools::testing"]
 
 [profile.release]
 strip = true

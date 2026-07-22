@@ -87,6 +87,7 @@ mod tests {
     fn test_spec_scan_no_such_file() {
         let config = ScanConfig {
             target: Target::Spec(std::path::PathBuf::from("/nonexistent/spec.yaml")),
+            allow_cross_origin: false,
             method: None,
             headers: vec![],
             auth: None,
